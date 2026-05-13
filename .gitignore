@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+.env
+.env.local
+*.log
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# Claude Code local state (per-user, not project)
+.claude/
+

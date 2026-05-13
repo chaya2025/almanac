@@ -1,0 +1,302 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Almanac palette — warm paper, ink, clay, moss */
+    --paper: 245 239 227;
+    --paper-2: 235 227 211;
+    --paper-3: 224 214 192;
+    --ink: 26 22 18;
+    --ink-soft: 74 66 58;
+    --ink-mute: 139 126 108;
+    --clay: 184 83 61;
+    --clay-deep: 143 63 46;
+    --moss: 90 107 58;
+    --moss-deep: 68 82 44;
+    --amber: 200 149 68;
+    --rule: 212 201 176;
+
+    color-scheme: light;
+    font-feature-settings: 'liga' 1, 'kern' 1;
+  }
+
+  html {
+    background-color: rgb(var(--paper));
+    color: rgb(var(--ink));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: 'ss01' 1, 'ss02' 1, 'cv11' 1;
+    min-height: 100vh;
+    background-color: rgb(var(--paper));
+    background-image:
+      /* faint horizontal rules — almanac feel */
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 31px,
+        rgba(var(--rule), 0.18) 32px
+      ),
+      /* soft paper grain */
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+
+  /* Selection takes on clay ink */
+  ::selection {
+    background-color: rgb(var(--clay) / 0.25);
+    color: rgb(var(--ink));
+  }
+
+  /* Distinctive caret for textareas */
+  textarea, input {
+    caret-color: rgb(var(--clay));
+  }
+
+  /* Fraunces variable axes — editorial display */
+  .font-display {
+    font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 1;
+  }
+  .font-display-italic {
+    font-style: italic;
+    font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
+  }
+
+  /* Numerals: tabular, lining */
+  .nums {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  /* Tracked uppercase labels — newspaper section heads */
+  .label {
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: rgb(var(--ink-mute));
+  }
+
+  /* Hairline rule — fine 1px with paper grain */
+  .hr {
+    height: 1px;
+    background-color: rgb(var(--rule));
+    border: 0;
+  }
+
+  /* Drop cap, used in journal field */
+  .dropcap::first-letter {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-weight: 700;
+    font-size: 3.4em;
+    line-height: 0.85;
+    float: left;
+    margin: 0.05em 0.08em 0 0;
+    color: rgb(var(--clay-deep));
+    font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 1;
+  }
+}
+
+@layer components {
+  /* The card: paper-on-paper, hairline border, no/low radius */
+  .almanac-card {
+    background-color: rgb(var(--paper-2) / 0.55);
+    border: 1px solid rgb(var(--rule));
+    border-radius: 2px;
+    padding: 1.25rem 1.25rem;
+    position: relative;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+  }
+  .almanac-card:hover {
+    border-color: rgb(var(--ink-mute));
+    background-color: rgb(var(--paper-2) / 0.75);
+  }
+
+  /* corner ticks — top-left and bottom-right, like a registration mark */
+  .almanac-card::before,
+  .almanac-card::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: rgb(var(--ink));
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .almanac-card::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  .almanac-card::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+  }
+
+  /* Pill button — letterpress-y */
+  .btn-ink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    background-color: rgb(var(--ink));
+    color: rgb(var(--paper));
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: 999px;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    border: 1px solid rgb(var(--ink));
+    cursor: pointer;
+  }
+  .btn-ink:hover { background-color: rgb(var(--clay-deep)); border-color: rgb(var(--clay-deep)); }
+  .btn-ink:active { transform: translateY(1px); }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    background-color: transparent;
+    color: rgb(var(--ink));
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: 999px;
+    border: 1px solid rgb(var(--ink) / 0.5);
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .btn-ghost:hover { border-color: rgb(var(--ink)); }
+
+  /* Tiny tap-buttons for water etc. */
+  .tap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.25rem;
+    min-width: 3.25rem;
+    padding: 0 0.85rem;
+    background-color: rgb(var(--paper));
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--rule));
+    border-radius: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tap:hover {
+    border-color: rgb(var(--ink));
+    background-color: rgb(var(--paper-2));
+  }
+  .tap:active { transform: translateY(1px); }
+
+  /* Editorial input — no shadow, hairline underline */
+  .field {
+    width: 100%;
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid rgb(var(--rule));
+    padding: 0.45rem 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: rgb(var(--ink));
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .field:focus { border-bottom-color: rgb(var(--clay)); }
+  .field::placeholder { color: rgb(var(--ink-mute) / 0.7); }
+}
+
+@layer utilities {
+  /* Stagger reveal helper — use with animation-delay inline */
+  .reveal {
+    animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  /* Cross-hatch fill for chart pieces and meters */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgb(var(--ink) / 0.85),
+      rgb(var(--ink) / 0.85) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+  .hatch-clay {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgb(var(--clay) / 0.85),
+      rgb(var(--clay) / 0.85) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+  .hatch-moss {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgb(var(--moss) / 0.85),
+      rgb(var(--moss) / 0.85) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+}
+
+/* Native range slider — restyle to almanac */
+input[type='range'].almanac {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range'].almanac::-webkit-slider-runnable-track {
+  height: 1px;
+  background: rgb(var(--ink) / 0.4);
+}
+input[type='range'].almanac::-moz-range-track {
+  height: 1px;
+  background: rgb(var(--ink) / 0.4);
+}
+input[type='range'].almanac::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgb(var(--ink));
+  margin-top: -7px;
+  border: 2px solid rgb(var(--paper));
+  box-shadow: 0 0 0 1px rgb(var(--ink));
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+input[type='range'].almanac:hover::-webkit-slider-thumb {
+  background: rgb(var(--clay-deep));
+  box-shadow: 0 0 0 1px rgb(var(--clay-deep));
+  transform: scale(1.1);
+}
+input[type='range'].almanac::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgb(var(--ink));
+  border: 2px solid rgb(var(--paper));
+  box-shadow: 0 0 0 1px rgb(var(--ink));
+}
