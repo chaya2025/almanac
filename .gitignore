@@ -11,3 +11,6 @@ dist-ssr
 # Claude Code local state (per-user, not project)
 .claude/
 
+# TypeScript build cache
+*.tsbuildinfo
+
