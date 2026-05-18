@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import clsx from 'clsx';
 import { db } from '@/db/schema';
 import Rule from '@/components/Rule';
 import Card from '@/components/Card';
 import { markExported, daysSinceLastExport } from '@/lib/backup';
+import type { FoodGroup, TimeFormat } from '@/types';
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -40,7 +42,7 @@ export default function Settings() {
 
   const exportAll = async () => {
     const dump = {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       profile: await db.profile.toArray(),
       days: await db.days.toArray(),
@@ -50,6 +52,7 @@ export default function Settings() {
       workouts: await db.workouts.toArray(),
       weights: await db.weights.toArray(),
       foodLibrary: await db.foodLibrary.toArray(),
+      savedMeals: await db.savedMeals.toArray(),
     };
     const slug = (profile?.name ?? 'almanac').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
@@ -71,7 +74,7 @@ export default function Settings() {
       const data = JSON.parse(text);
       // simple validation
       if (!data.version) throw new Error('Missing version');
-      await db.transaction('rw', [db.profile, db.days, db.sleep, db.meals, db.water, db.workouts, db.weights], async () => {
+      await db.transaction('rw', [db.profile, db.days, db.sleep, db.meals, db.water, db.workouts, db.weights, db.savedMeals], async () => {
         if (Array.isArray(data.profile)) await db.profile.bulkPut(data.profile);
         if (Array.isArray(data.days)) await db.days.bulkPut(data.days);
         if (Array.isArray(data.sleep)) await db.sleep.bulkPut(data.sleep);
@@ -79,6 +82,7 @@ export default function Settings() {
         if (Array.isArray(data.water)) await db.water.bulkPut(data.water);
         if (Array.isArray(data.workouts)) await db.workouts.bulkPut(data.workouts);
         if (Array.isArray(data.weights)) await db.weights.bulkPut(data.weights);
+        if (Array.isArray(data.savedMeals)) await db.savedMeals.bulkPut(data.savedMeals);
       });
       setImportMsg('Imported successfully.');
     } catch (e) {
@@ -118,10 +122,21 @@ export default function Settings() {
           ) : (
             <span className="label">no profile yet</span>
           )}
-          <div className="mt-4">
+          <div className="mt-4 flex items-center gap-3">
             <a href="/onboarding" className="btn-ghost">re-take quiz</a>
+            {profile && (
+              <TimeFormatToggle
+                value={(profile.timeFormat ?? '24h') as TimeFormat}
+                onChange={async (fmt) => {
+                  await db.profile.update('me', { timeFormat: fmt, updatedAt: Date.now() });
+                }}
+              />
+            )}
           </div>
         </Card>
+
+        <UserFoodsCard />
+        <SavedMealsCard />
 
         <Card eyebrow="install" title="Live on your home screen">
           <p className="text-sm text-ink-soft mb-4 leading-relaxed">
@@ -204,5 +219,121 @@ function Row({ k, v }: { k: string; v: string | number }) {
       <dt className="label self-center">{k}</dt>
       <dd className="font-display text-base capitalize">{String(v).replace('-', ' ')}</dd>
     </>
+  );
+}
+
+function TimeFormatToggle({ value, onChange }: { value: TimeFormat; onChange: (v: TimeFormat) => void }) {
+  return (
+    <div className="inline-flex items-center gap-2">
+      <span className="label">time</span>
+      <div className="inline-flex border border-rule rounded-sm overflow-hidden">
+        {(['24h', '12h'] as TimeFormat[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => onChange(v)}
+            className={clsx(
+              'px-2.5 py-1 text-[11px] uppercase tracking-[0.15em] transition-colors',
+              value === v ? 'bg-ink text-paper' : 'text-ink-mute hover:bg-paper-2'
+            )}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ALL_GROUPS_FOR_SETTINGS: FoodGroup[] = ['protein', 'veg', 'fruit', 'grain', 'dairy', 'fat', 'sweet', 'drink'];
+
+function UserFoodsCard() {
+  const userFoods = useLiveQuery(
+    () => db.foodLibrary.where('tags').equals('user-added').toArray(),
+    []
+  );
+
+  if (!userFoods || userFoods.length === 0) {
+    return (
+      <Card eyebrow="library" title="Foods you've added">
+        <p className="text-sm text-ink-soft italic">
+          As you type new foods into your meals, they’ll be saved here so the next time you start
+          typing the name, almanac will know them.
+        </p>
+      </Card>
+    );
+  }
+  return (
+    <Card eyebrow="library" title="Foods you've added">
+      <ul className="divide-y divide-rule">
+        {userFoods.map((f) => (
+          <li key={f.id} className="py-2 flex items-center justify-between gap-3">
+            <span className="font-display text-base">{f.name}</span>
+            <div className="flex items-center gap-2">
+              <select
+                value={f.group}
+                onChange={async (e) => {
+                  if (f.id != null) {
+                    await db.foodLibrary.update(f.id, { group: e.target.value as FoodGroup });
+                  }
+                }}
+                className="text-[11px] uppercase tracking-[0.15em] border border-rule bg-paper px-2 py-1"
+              >
+                {ALL_GROUPS_FOR_SETTINGS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <button
+                onClick={async () => {
+                  if (f.id != null) await db.foodLibrary.delete(f.id);
+                }}
+                className="text-xs text-ink-mute hover:text-clay-deep"
+                title="Remove from library"
+              >
+                ×
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function SavedMealsCard() {
+  const saved = useLiveQuery(() => db.savedMeals.orderBy('name').toArray(), []);
+  if (!saved || saved.length === 0) {
+    return (
+      <Card eyebrow="cookbook" title="Saved meals">
+        <p className="text-sm text-ink-soft italic">
+          When you have a meal you eat often, tap “save as template” on Today after logging it.
+          Saved meals show up here and as a one-tap option in any empty meal slot.
+        </p>
+      </Card>
+    );
+  }
+  return (
+    <Card eyebrow="cookbook" title="Saved meals">
+      <ul className="divide-y divide-rule">
+        {saved.map((m) => (
+          <li key={m.id} className="py-2 flex items-baseline justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="font-display text-base">{m.name}</span>
+              <span className="label">{m.items.map((it) => it.name).join(' · ')}</span>
+            </div>
+            <button
+              onClick={async () => {
+                if (m.id != null && confirm(`Delete saved meal "${m.name}"?`)) {
+                  await db.savedMeals.delete(m.id);
+                }
+              }}
+              className="text-xs text-ink-mute hover:text-clay-deep"
+              title="Delete"
+            >
+              delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }

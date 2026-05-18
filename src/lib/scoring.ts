@@ -19,6 +19,17 @@ export function scoreSleep(hours: number | undefined, target: number): number {
   return Math.max(0, Math.round(100 - delta * 20));
 }
 
+/**
+ * Rolling sleep debt: sum of (hours - target) over the provided nights.
+ * Positive = credit (more sleep than target); negative = debt.
+ * Caller decides the window (e.g. last 7 days).
+ */
+export function sleepDebt(sleeps: SleepEntry[], targetHours: number): number {
+  if (!sleeps.length) return 0;
+  const sum = sleeps.reduce((s, x) => s + (x.hours - targetHours), 0);
+  return Math.round(sum * 10) / 10;
+}
+
 export function sleepFeedback(hours: number | undefined, target: number): {
   severity: FeedbackSeverity;
   message: string;

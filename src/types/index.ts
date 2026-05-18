@@ -40,6 +40,8 @@ export type HealthGoal = 'lose' | 'maintain' | 'gain' | 'wellbeing';
 
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
 
+export type TimeFormat = '24h' | '12h';
+
 export interface Profile {
   id: 'me';
   name?: string;
@@ -55,6 +57,7 @@ export interface Profile {
   sportMinutesPerSession: number;
   sleepTargetHours: number;
   waterTargetMl: number;
+  timeFormat?: TimeFormat; // '24h' default
   createdAt: number;
   updatedAt: number;
 }
@@ -135,4 +138,28 @@ export interface WeightEntry {
   kg: number;
   note?: string;
   createdAt: number;
+}
+
+export interface SavedMeal {
+  id?: number;
+  name: string;
+  items: MealItem[];
+  slotHint?: MealSlot;
+  createdAt: number;
+}
+
+export interface WeekSummary {
+  weekKey: string; // Monday of that week, yyyy-MM-dd
+  sleepAvgHours: number | null;
+  sleepNightsLogged: number;
+  waterTotalMl: number;
+  waterDaysOnTarget: number;
+  sportSessions: number;
+  sportMinutes: number;
+  sportTargetMinutes: number;
+  weightDeltaKg: number | null;
+  mostMissedSlot: MealSlot | null;
+  bestDayKey: string | null;
+  bestDayScore: number | null;
+  journalEntries: number;
 }

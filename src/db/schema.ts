@@ -9,6 +9,7 @@ import type {
   FoodLibraryEntry,
   FeedbackEntry,
   WeightEntry,
+  SavedMeal,
 } from '@/types';
 
 export class AlmanacDB extends Dexie {
@@ -21,6 +22,7 @@ export class AlmanacDB extends Dexie {
   foodLibrary!: Table<FoodLibraryEntry, number>;
   feedback!: Table<FeedbackEntry, number>;
   weights!: Table<WeightEntry, number>;
+  savedMeals!: Table<SavedMeal, number>;
 
   constructor() {
     super('almanac');
@@ -35,7 +37,7 @@ export class AlmanacDB extends Dexie {
       foodLibrary: '++id, &name, group, *tags',
       feedback: '++id, date, area, severity',
     });
-    // v2: add weights table (height/weight live on profile)
+    // v2: add weights table
     this.version(2).stores({
       profile: 'id',
       days: 'date, updatedAt',
@@ -46,6 +48,19 @@ export class AlmanacDB extends Dexie {
       foodLibrary: '++id, &name, group, *tags',
       feedback: '++id, date, area, severity',
       weights: '++id, &date, createdAt',
+    });
+    // v3: add savedMeals table for the cookbook feature
+    this.version(3).stores({
+      profile: 'id',
+      days: 'date, updatedAt',
+      sleep: '++id, date',
+      meals: '++id, date, slot, [date+slot]',
+      water: '++id, date, time',
+      workouts: '++id, date',
+      foodLibrary: '++id, &name, group, *tags',
+      feedback: '++id, date, area, severity',
+      weights: '++id, &date, createdAt',
+      savedMeals: '++id, &name, slotHint, createdAt',
     });
   }
 }

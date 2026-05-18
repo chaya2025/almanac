@@ -34,7 +34,7 @@ export function daysSinceLastExport(): number | null {
  */
 export async function exportToFile(name?: string): Promise<string> {
   const dump = {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     profile: await db.profile.toArray(),
     days: await db.days.toArray(),
@@ -44,6 +44,7 @@ export async function exportToFile(name?: string): Promise<string> {
     workouts: await db.workouts.toArray(),
     weights: await db.weights.toArray(),
     foodLibrary: await db.foodLibrary.toArray(),
+    savedMeals: await db.savedMeals.toArray(),
   };
   const slug = (name ?? 'almanac').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'almanac';
   const filename = `${slug}-almanac-${new Date().toISOString().slice(0, 10)}.json`;

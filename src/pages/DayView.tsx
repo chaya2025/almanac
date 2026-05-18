@@ -9,7 +9,7 @@ import {
   scoreMealsForDay,
   scoreWater,
 } from '@/lib/scoring';
-import { weekKeysFor } from '@/lib/dates';
+import { weekKeysFor, formatTime } from '@/lib/dates';
 import Rule from '@/components/Rule';
 import Card from '@/components/Card';
 import { MEAL_SLOTS, MEAL_SLOT_LABELS, type MealEntry, type MealSlot } from '@/types';
@@ -88,6 +88,11 @@ export default function DayView() {
           {sleep ? (
             <div>
               <div className="font-display text-6xl nums">{sleep.hours.toFixed(1)}<span className="text-2xl text-ink-mute">h</span></div>
+              {(sleep.bedtime || sleep.wakeTime) && (
+                <div className="label mt-2 nums">
+                  {formatTime(sleep.bedtime, profile.timeFormat ?? '24h')} → {formatTime(sleep.wakeTime, profile.timeFormat ?? '24h')}
+                </div>
+              )}
               <div className="label mt-2">quality {sleep.quality}/5 · score {sleepScore}</div>
             </div>
           ) : (

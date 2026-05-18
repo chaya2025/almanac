@@ -10,6 +10,8 @@ import WaterChart from '@/components/charts/WaterChart';
 import SportChart from '@/components/charts/SportChart';
 import MoodChart from '@/components/charts/MoodChart';
 import WeightChart from '@/components/charts/WeightChart';
+import SleepDebtMeter from '@/components/charts/SleepDebtMeter';
+import { sleepDebt } from '@/lib/scoring';
 import {
   aggregateMeals,
   aggregateMoodSleep,
@@ -63,6 +65,17 @@ export default function Trends() {
     [days, sleep, g]
   );
   const weightSeries = useMemo(() => trendSeries(weights ?? []), [weights]);
+
+  // Sleep debt: last 7 nights, computed from the full sleep set in range
+  const last7Sleep = useMemo(() => {
+    if (!sleep) return [];
+    const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return sleep.filter((s) => new Date(s.date).getTime() >= cutoffMs);
+  }, [sleep]);
+  const debt = useMemo(
+    () => (profile && last7Sleep.length >= 3 ? sleepDebt(last7Sleep, profile.sleepTargetHours) : null),
+    [last7Sleep, profile]
+  );
 
   const corrSleepEnergy = useMemo(() => {
     const sleepXs = moodSeries.slice(0, -1).map((p) => p.sleepHours);
@@ -129,6 +142,21 @@ export default function Trends() {
           }
         >
           <WeightChart data={weightSeries} height={240} />
+        </Card>
+
+        <Card
+          eyebrow="i.b sleep debt"
+          title="The Sleep Ledger"
+          className="col-span-12 reveal"
+          style={{ animationDelay: '120ms' }}
+        >
+          {debt == null ? (
+            <div className="font-serif italic text-ink-mute py-6 text-center">
+              log at least 3 nights of sleep this week to see your balance.
+            </div>
+          ) : (
+            <SleepDebtMeter debt={debt} />
+          )}
         </Card>
 
         <Card

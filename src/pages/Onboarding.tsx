@@ -31,6 +31,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     sportSessionsPerWeek: 4,
     sportMinutesPerSession: 45,
     avoid: [],
+    timeFormat: '24h',
   });
 
   const idx = ORDER.indexOf(step);
@@ -54,6 +55,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       sportSessionsPerWeek: draft.sportSessionsPerWeek ?? 4,
       sportMinutesPerSession: draft.sportMinutesPerSession ?? 45,
       avoid: draft.avoid ?? [],
+      timeFormat: draft.timeFormat ?? '24h',
       createdAt: now,
       updatedAt: now,
     };

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { format, parseISO, getDay } from 'date-fns';
+import { format, parseISO, getDay, subDays } from 'date-fns';
+import clsx from 'clsx';
 import { db } from '@/db/schema';
-import { todayKey, weekKeysFor, prettyLongDate, ordinal } from '@/lib/dates';
+import { todayKey, weekKeysFor, prettyLongDate, ordinal, hoursBetween, isWrapMidnight } from '@/lib/dates';
 import {
   sleepFeedback,
   waterFeedback,
@@ -10,6 +11,7 @@ import {
   sportFeedback,
   moodFeedback,
   scoreMealSlot,
+  sleepDebt,
   type ScoredFeedback,
 } from '@/lib/scoring';
 import {
@@ -29,6 +31,8 @@ import Rule from '@/components/Rule';
 import Greeting from '@/components/Greeting';
 import WeightCard from '@/components/WeightCard';
 import ExportBanner from '@/components/ExportBanner';
+import StreakStrip from '@/components/StreakStrip';
+import WeeklyDigest from '@/components/WeeklyDigest';
 
 export default function Today() {
   const date = todayKey();
@@ -58,9 +62,17 @@ export default function Today() {
     [date]
   );
   const library = useLiveQuery(() => db.foodLibrary.toArray(), []);
+  const last7Sleep = useLiveQuery(() => {
+    const from = format(subDays(parseISO(date), 6), 'yyyy-MM-dd');
+    return db.sleep.where('date').between(from, date, true, true).toArray();
+  }, [date]);
 
   const waterMl = (water ?? []).reduce((s, w) => s + w.ml, 0);
   const totalSportToday = (workoutsToday ?? []).reduce((s, w) => s + w.durationMin, 0);
+  const debtHours = useMemo(
+    () => (profile && (last7Sleep?.length ?? 0) >= 3 ? sleepDebt(last7Sleep ?? [], profile.sleepTargetHours) : null),
+    [last7Sleep, profile]
+  );
 
   // ensure a meal row exists for each slot for clean editing
   const mealsBySlot = useMemo(() => {
@@ -93,8 +105,10 @@ export default function Today() {
   return (
     <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-8">
       <ExportBanner />
+      <WeeklyDigest profile={profile} />
       <Greeting name={profile.name} />
       <Masthead date={date} />
+      <StreakStrip />
       <FeedbackStrip items={feedback} />
 
       <div className="grid grid-cols-12 gap-5 mt-8">
@@ -105,7 +119,7 @@ export default function Today() {
           className="col-span-12 md:col-span-4"
           style={{ animationDelay: '40ms' }}
         >
-          <SleepBlock profile={profile} sleep={sleep} date={date} />
+          <SleepBlock profile={profile} sleep={sleep} date={date} debtHours={debtHours} />
         </Card>
 
         {/* MEALS */}
@@ -224,55 +238,104 @@ function SleepBlock({
   profile,
   sleep,
   date,
+  debtHours,
 }: {
   profile: Profile;
-  sleep: { hours: number; quality: number } | undefined;
+  sleep: { hours: number; quality: number; bedtime?: string; wakeTime?: string } | undefined;
   date: string;
+  debtHours: number | null;
 }) {
-  const [hours, setHours] = useState<number>(sleep?.hours ?? 0);
+  const [bedtime, setBedtime] = useState<string>(sleep?.bedtime ?? '');
+  const [wakeTime, setWakeTime] = useState<string>(sleep?.wakeTime ?? '');
   const [quality, setQuality] = useState<number>(sleep?.quality ?? 3);
 
   useEffect(() => {
-    setHours(sleep?.hours ?? 0);
+    setBedtime(sleep?.bedtime ?? '');
+    setWakeTime(sleep?.wakeTime ?? '');
     setQuality(sleep?.quality ?? 3);
-  }, [sleep?.hours, sleep?.quality]);
+  }, [sleep?.bedtime, sleep?.wakeTime, sleep?.quality]);
 
+  const derived = hoursBetween(bedtime, wakeTime);
+  const hours = derived ?? sleep?.hours ?? 0;
   const target = profile.sleepTargetHours;
   const diff = hours ? hours - target : 0;
+  const wraps = isWrapMidnight(bedtime, wakeTime);
+
+  const commit = (nextBed: string, nextWake: string, nextQ: number) => {
+    const h = hoursBetween(nextBed, nextWake) ?? 0;
+    upsertSleep(date, { hours: h, quality: nextQ, bedtime: nextBed || undefined, wakeTime: nextWake || undefined });
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-3 mt-1">
-        <span className="font-display font-medium text-[5rem] leading-none nums">
-          {hours.toFixed(hours % 1 === 0 ? 0 : 1)}
+        <span className="font-display font-medium text-[4.5rem] leading-none nums">
+          {hours ? hours.toFixed(hours % 1 === 0 ? 0 : 1) : '—'}
         </span>
         <span className="font-display text-2xl text-ink-mute leading-none mb-2">h</span>
-        <span className="ml-auto label nums">
-          target {target}h
-        </span>
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <span className="label nums">target {target}h</span>
+          {debtHours != null && (
+            <span
+              className={clsx(
+                'text-[10px] uppercase tracking-[0.18em] nums',
+                debtHours >= 0
+                  ? 'text-moss-deep'
+                  : debtHours > -2
+                  ? 'text-amber'
+                  : 'text-clay-deep'
+              )}
+              title="rolling 7-day sleep debt vs. target"
+            >
+              {debtHours >= 0 ? '+' : ''}{debtHours.toFixed(1)}h · 7d
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2 text-xs">
-        <span className={diff >= -0.5 ? 'text-moss-deep' : 'text-clay-deep'}>
-          {diff >= 0 ? '+' : ''}
-          {diff.toFixed(1)}h vs. target
-        </span>
+
+      {hours > 0 && (
+        <div className="text-xs">
+          <span className={diff >= -0.5 ? 'text-moss-deep' : 'text-clay-deep'}>
+            {diff >= 0 ? '+' : ''}{diff.toFixed(1)}h vs. target
+          </span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1">
+          <span className="label">bedtime</span>
+          <input
+            type="time"
+            className="field nums font-display text-xl py-1"
+            value={bedtime}
+            onChange={(e) => {
+              const v = e.target.value;
+              setBedtime(v);
+              commit(v, wakeTime, quality);
+            }}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="label">wake time</span>
+          <input
+            type="time"
+            className="field nums font-display text-xl py-1"
+            value={wakeTime}
+            onChange={(e) => {
+              const v = e.target.value;
+              setWakeTime(v);
+              commit(bedtime, v, quality);
+            }}
+          />
+        </label>
       </div>
-      <input
-        type="range"
-        className="almanac"
-        min={0}
-        max={12}
-        step={0.25}
-        value={hours}
-        onChange={(e) => setHours(Number(e.target.value))}
-        onMouseUp={(e) => upsertSleep(date, Number((e.target as HTMLInputElement).value), quality)}
-        onTouchEnd={(e) => upsertSleep(date, Number((e.target as HTMLInputElement).value), quality)}
-      />
-      <div className="flex justify-between text-[10px] uppercase tracking-[0.18em] text-ink-mute -mt-2">
-        <span>0h</span>
-        <span>6h</span>
-        <span>12h</span>
-      </div>
+
+      {wraps && (
+        <div className="text-[10px] uppercase tracking-[0.18em] text-ink-mute">
+          ↻ wraps over midnight
+        </div>
+      )}
+
       <div className="border-t border-rule pt-3">
         <div className="flex items-baseline justify-between mb-1">
           <span className="label">quality</span>
@@ -284,7 +347,7 @@ function SleepBlock({
               key={q}
               onClick={() => {
                 setQuality(q);
-                upsertSleep(date, hours, q);
+                commit(bedtime, wakeTime, q);
               }}
               className={`flex-1 h-2 transition-colors ${
                 q <= quality ? 'bg-ink' : 'bg-rule'
@@ -513,13 +576,18 @@ async function upsertMeal(date: string, slot: MealSlot, items: MealItem[]) {
   }
 }
 
-async function upsertSleep(date: string, hours: number, quality: number) {
+type SleepPatch = { hours: number; quality: number; bedtime?: string; wakeTime?: string };
+
+async function upsertSleep(date: string, patch: SleepPatch | number, q?: number) {
+  // Back-compat: callers used to pass (date, hours, quality)
+  const data: SleepPatch =
+    typeof patch === 'number' ? { hours: patch, quality: q ?? 3 } : patch;
   const existing = await db.sleep.where('date').equals(date).first();
   const updatedAt = Date.now();
   if (existing?.id != null) {
-    await db.sleep.update(existing.id, { hours, quality, updatedAt });
+    await db.sleep.update(existing.id, { ...data, updatedAt });
   } else {
-    await db.sleep.add({ date, hours, quality, updatedAt });
+    await db.sleep.add({ date, ...data, updatedAt });
   }
 }
 

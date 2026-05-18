@@ -8,14 +8,20 @@ import {
   subWeeks,
   subMonths,
 } from 'date-fns';
+import { db } from '@/db/schema';
 import type {
   DayEntry,
   FoodGroup,
   MealEntry,
+  MealSlot,
+  Profile,
   SleepEntry,
   WaterEntry,
+  WeekSummary,
   WorkoutEntry,
 } from '@/types';
+import { MEAL_SLOTS } from '@/types';
+import { scoreMealsForDay, scoreSleep, scoreWater } from '@/lib/scoring';
 
 export type Granularity = 'daily' | 'weekly' | 'monthly';
 
@@ -67,22 +73,34 @@ function bucketDates(g: Granularity): string[] {
 export function aggregateSleep(
   rows: SleepEntry[],
   g: Granularity
-): { date: string; hours: number | null; rolling: number | null }[] {
+): { date: string; hours: number | null; rolling: number | null; bedtimeH: number | null }[] {
   const buckets = bucketDates(g);
-  const map = new Map<string, number[]>();
+  const hoursMap = new Map<string, number[]>();
+  const bedtimeMap = new Map<string, number[]>();
   rows.forEach((r) => {
     const k = bucketKey(r.date, g);
-    if (!map.has(k)) map.set(k, []);
-    map.get(k)!.push(r.hours);
+    if (!hoursMap.has(k)) hoursMap.set(k, []);
+    hoursMap.get(k)!.push(r.hours);
+    const bt = parseTimeToMinutes(r.bedtime);
+    if (bt != null) {
+      // shift early-AM bedtimes (< 6am) forward by 24h so 01:00 averages near midnight not noon
+      const adjusted = bt < 6 * 60 ? bt + 24 * 60 : bt;
+      if (!bedtimeMap.has(k)) bedtimeMap.set(k, []);
+      bedtimeMap.get(k)!.push(adjusted);
+    }
   });
   const series = buckets.map((b) => {
-    const xs = map.get(b);
+    const xs = hoursMap.get(b);
+    const bts = bedtimeMap.get(b);
+    const avgBt = bts && bts.length ? bts.reduce((a, x) => a + x, 0) / bts.length : null;
+    // expose bedtime in hours-past-18:00 for chart plotting (18:00 = 0, midnight = 6, 02:00 = 8)
+    const bedtimeH = avgBt == null ? null : round1((avgBt - 18 * 60) / 60);
     return {
       date: b,
       hours: xs ? round1(xs.reduce((a, x) => a + x, 0) / xs.length) : null,
+      bedtimeH,
     };
   });
-  // 7-point rolling average (in whatever bucket units)
   return series.map((p, i, arr) => {
     const window = arr.slice(Math.max(0, i - 6), i + 1).filter((x) => x.hours != null);
     return {
@@ -93,6 +111,13 @@ export function aggregateSleep(
           : null,
     };
   });
+}
+
+function parseTimeToMinutes(t: string | undefined): number | null {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
 /* ---------- Meals ---------- */
@@ -220,3 +245,104 @@ export function pearson(xs: (number | null)[], ys: (number | null)[]): number | 
 
 const avg = (xs: number[]) => xs.reduce((a, x) => a + x, 0) / xs.length;
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/* ---------- Weekly digest ---------- */
+
+/** weekKey = Monday of the week to summarize (yyyy-MM-dd). */
+export async function summarizeWeek(weekKey: string, profile: Profile): Promise<WeekSummary> {
+  const monday = parseISO(weekKey);
+  const dates = Array.from({ length: 7 }, (_, i) => format(addDays(monday, i), 'yyyy-MM-dd'));
+  const from = dates[0];
+  const to = dates[6];
+
+  const [sleeps, meals, waters, workouts, weights, days] = await Promise.all([
+    db.sleep.where('date').between(from, to, true, true).toArray(),
+    db.meals.where('date').between(from, to, true, true).toArray(),
+    db.water.where('date').between(from, to, true, true).toArray(),
+    db.workouts.where('date').between(from, to, true, true).toArray(),
+    db.weights.where('date').between(from, to, true, true).toArray(),
+    db.days.where('date').between(from, to, true, true).toArray(),
+  ]);
+
+  // sleep
+  const sleepNights = sleeps.length;
+  const sleepAvg = sleepNights ? round1(avg(sleeps.map((s) => s.hours))) : null;
+
+  // water
+  const waterByDay = new Map<string, number>();
+  waters.forEach((w) => waterByDay.set(w.date, (waterByDay.get(w.date) ?? 0) + w.ml));
+  const waterTotal = Array.from(waterByDay.values()).reduce((a, x) => a + x, 0);
+  const waterTarget = profile.waterTargetMl;
+  const waterDaysOnTarget = Array.from(waterByDay.values()).filter((ml) => ml >= waterTarget).length;
+
+  // sport
+  const sportSessions = workouts.length;
+  const sportMinutes = workouts.reduce((s, w) => s + w.durationMin, 0);
+  const sportTargetMinutes = profile.sportSessionsPerWeek * profile.sportMinutesPerSession;
+
+  // weight delta: latest in window minus prior weigh-in (whenever it was)
+  let weightDelta: number | null = null;
+  const lastInWindow = [...weights].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  if (lastInWindow) {
+    const prior = await db.weights
+      .where('date')
+      .below(lastInWindow.date)
+      .reverse()
+      .first();
+    if (prior) weightDelta = round1(lastInWindow.kg - prior.kg);
+  }
+
+  // most-missed meal slot (slot most often empty across these 7 days)
+  const filledCount: Record<MealSlot, number> = {
+    breakfast: 0, lunch: 0, dinner: 0, snack1: 0, snack2: 0,
+  };
+  for (const slot of MEAL_SLOTS) {
+    for (const date of dates) {
+      const m = meals.find((x) => x.date === date && x.slot === slot);
+      if (m && m.items.length > 0) filledCount[slot]++;
+    }
+  }
+  let mostMissedSlot: MealSlot | null = null;
+  let worst = 8;
+  for (const slot of MEAL_SLOTS) {
+    if (filledCount[slot] < worst) {
+      worst = filledCount[slot];
+      mostMissedSlot = slot;
+    }
+  }
+
+  // best day: highest combined sleep+meals+water score
+  let bestDayKey: string | null = null;
+  let bestDayScore: number | null = null;
+  for (const date of dates) {
+    const s = sleeps.find((x) => x.date === date);
+    const mealsOnDay = meals.filter((x) => x.date === date);
+    const waterOnDay = waterByDay.get(date) ?? 0;
+    const score =
+      scoreSleep(s?.hours, profile.sleepTargetHours) * 0.4 +
+      scoreMealsForDay(mealsOnDay, profile.dietStyle) * 0.4 +
+      scoreWater(waterOnDay, profile.waterTargetMl) * 0.2;
+    if (bestDayScore == null || score > bestDayScore) {
+      bestDayScore = Math.round(score);
+      bestDayKey = date;
+    }
+  }
+
+  const journalEntries = days.filter((d) => d.journal && d.journal.trim().length > 0).length;
+
+  return {
+    weekKey,
+    sleepAvgHours: sleepAvg,
+    sleepNightsLogged: sleepNights,
+    waterTotalMl: waterTotal,
+    waterDaysOnTarget,
+    sportSessions,
+    sportMinutes,
+    sportTargetMinutes,
+    weightDeltaKg: weightDelta,
+    mostMissedSlot,
+    bestDayKey,
+    bestDayScore,
+    journalEntries,
+  };
+}

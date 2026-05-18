@@ -1,7 +1,8 @@
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -11,7 +12,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import ChartFrame, { axisStyle, palette, tooltipStyle, labelStyle } from './ChartFrame';
 
-type Point = { date: string; hours: number | null; rolling?: number | null };
+type Point = { date: string; hours: number | null; rolling?: number | null; bedtimeH?: number | null };
 
 export default function SleepChart({
   data,
@@ -25,10 +26,11 @@ export default function SleepChart({
   granularity: 'daily' | 'weekly' | 'monthly';
 }) {
   const empty = !data.some((d) => d.hours != null);
+  const hasBedtime = data.filter((d) => d.bedtimeH != null).length >= 3;
   return (
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: -16 }}>
+        <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: -16 }}>
           <defs>
             <pattern id="sleep-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
               <line x1="0" y1="0" x2="0" y2="6" stroke={palette.ink} strokeWidth="1" opacity="0.45" />
@@ -89,7 +91,19 @@ export default function SleepChart({
               isAnimationActive
             />
           )}
-        </AreaChart>
+          {hasBedtime && (
+            <Line
+              type="monotone"
+              dataKey="bedtimeH"
+              stroke={palette.mossDeep}
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              dot={{ stroke: palette.mossDeep, fill: palette.paper, strokeWidth: 1, r: 2 }}
+              isAnimationActive
+              connectNulls
+            />
+          )}
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartFrame>
   );
