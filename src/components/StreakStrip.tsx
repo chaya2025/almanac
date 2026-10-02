@@ -33,18 +33,20 @@ export default function StreakStrip() {
   );
 
   const items = [
-    { label: 'sleep', count: currentStreak(sleep?.map((s) => s.date) ?? [], today) },
+    { label: 'sleep', tone: 'tone-night', count: currentStreak(sleep?.map((s) => s.date) ?? [], today) },
     {
       label: 'meals',
+      tone: 'tone-tang',
       count: currentStreak(
         (meals ?? []).filter((m) => m.items.length > 0).map((m) => m.date),
         today
       ),
     },
-    { label: 'water', count: currentStreak(water?.map((w) => w.date) ?? [], today) },
-    { label: 'sport', count: currentStreak(workouts?.map((w) => w.date) ?? [], today) },
+    { label: 'water', tone: 'tone-aqua', count: currentStreak(water?.map((w) => w.date) ?? [], today) },
+    { label: 'sport', tone: 'tone-leaf', count: currentStreak(workouts?.map((w) => w.date) ?? [], today) },
     {
       label: 'journal',
+      tone: 'tone-coral',
       count: currentStreak(
         (days ?? []).filter((d) => d.journal && d.journal.trim().length > 0).map((d) => d.date),
         today
@@ -56,23 +58,27 @@ export default function StreakStrip() {
   if (!anyActive) return null;
 
   return (
-    <div className="reveal flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-4 mb-6 text-sm">
-      <span className="label">streaks ·</span>
+    <div className="reveal flex flex-wrap items-center gap-2 mt-5 mb-6">
+      <span className="label mr-1">streaks</span>
       {items.map((it) => (
-        <span key={it.label} className="flex items-baseline gap-1.5">
-          <span className="label">{it.label}</span>
+        <span
+          key={it.label}
+          className={clsx(
+            it.tone,
+            'inline-flex items-center gap-1.5 rounded-full border-2 pl-1 pr-3 py-0.5 text-sm transition-transform hover:-rotate-2',
+            it.count === 0 ? 'border-ink/20 bg-white/50 text-ink-mute' : 'border-ink bg-tone-soft shadow-pop-sm'
+          )}
+        >
           <span
             className={clsx(
-              'font-display nums',
-              it.count === 0
-                ? 'text-ink-mute'
-                : it.count >= 7
-                ? 'text-clay-deep'
-                : 'text-ink'
+              'h-7 min-w-7 px-1 rounded-full grid place-items-center font-display font-black nums text-base leading-none',
+              it.count === 0 ? 'bg-ink/5' : 'bg-tone border-2 border-ink'
             )}
           >
             {it.count}
           </span>
+          <span className="text-[11px] uppercase tracking-[0.14em] font-bold">{it.label}</span>
+          {it.count >= 7 && <span aria-label="on fire">🔥</span>}
         </span>
       ))}
     </div>

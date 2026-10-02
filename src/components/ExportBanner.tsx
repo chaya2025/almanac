@@ -48,11 +48,11 @@ export default function ExportBanner() {
   };
 
   return (
-    <div className="reveal mb-6 border border-clay/60 bg-paper-2/60 px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
+    <div className="reveal tone-coral mb-6 border-2 border-ink rounded-2xl bg-tone-soft shadow-pop px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
       <div className="flex items-start gap-3 flex-1">
-        <span className="font-display-italic text-clay-deep text-2xl leading-none mt-0.5">¶</span>
+        <span className="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-tone border-2 border-ink text-lg animate-wiggle" aria-hidden>💾</span>
         <div>
-          <div className="font-display text-base text-ink">
+          <div className="font-display font-bold text-base text-ink">
             {message}{' '}
             <span className="text-ink-soft">A quick export keeps your chronicle safe.</span>
           </div>

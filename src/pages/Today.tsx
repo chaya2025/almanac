@@ -221,15 +221,23 @@ function Masthead({ date }: { date: string }) {
   const monthYear = format(d, 'MMMM yyyy');
 
   return (
-    <div className="reveal">
+    <div className="reveal relative">
       <div className="label mb-3">{prettyLongDate(date)}</div>
-      <h1 className="font-display font-medium text-[clamp(3.2rem,8vw,6.5rem)] leading-[0.92] tracking-tight">
-        {dayName},
+      <h1 className="font-display font-black text-[clamp(3.2rem,8vw,6.5rem)] leading-[0.92] tracking-tight">
+        <span className="bg-gradient-to-r from-coral via-pink to-night bg-clip-text text-transparent">{dayName},</span>
         <br />
-        <span className="font-display-italic text-clay-deep">the {dayNum}</span>
-        <span className="text-ink-soft"> of {monthYear}</span>
+        <span className="font-display-italic tone-sun marker">the {dayNum}</span>
+        <span className="text-ink-soft font-bold"> of {monthYear}</span>
       </h1>
-      <Rule />
+      <div className="absolute right-0 top-2 hidden md:flex rotate-6 flex-col items-center justify-center h-28 w-28 rounded-full border-2 border-ink bg-sun shadow-pop animate-float">
+        <span className="label !text-ink">{format(d, 'MMM')}</span>
+        <span className="font-display font-black text-5xl leading-none nums">{format(d, 'd')}</span>
+      </div>
+      <div className="flex gap-1.5 mt-5 mb-1" aria-hidden>
+        {['night', 'tang', 'aqua', 'pink', 'leaf', 'sun', 'coral'].map((c) => (
+          <span key={c} className="h-2.5 flex-1 max-w-16 rounded-full border-2 border-ink" style={{ background: `rgb(var(--${c}))` }} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -269,7 +277,7 @@ function SleepBlock({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-3 mt-1">
-        <span className="font-display font-medium text-[4.5rem] leading-none nums">
+        <span className="font-display font-black text-[4.5rem] leading-none nums text-tone-deep">
           {hours ? hours.toFixed(hours % 1 === 0 ? 0 : 1) : '—'}
         </span>
         <span className="font-display text-2xl text-ink-mute leading-none mb-2">h</span>
@@ -295,7 +303,7 @@ function SleepBlock({
 
       {hours > 0 && (
         <div className="text-xs">
-          <span className={diff >= -0.5 ? 'text-moss-deep' : 'text-clay-deep'}>
+          <span className={clsx('inline-block font-bold px-2 py-0.5 rounded-full border-2 border-ink', diff >= -0.5 ? 'bg-moss text-white' : 'bg-clay text-white')}>
             {diff >= 0 ? '+' : ''}{diff.toFixed(1)}h vs. target
           </span>
         </div>
@@ -349,11 +357,13 @@ function SleepBlock({
                 setQuality(q);
                 commit(bedtime, wakeTime, q);
               }}
-              className={`flex-1 h-2 transition-colors ${
-                q <= quality ? 'bg-ink' : 'bg-rule'
-              } hover:opacity-80`}
+              className={`flex-1 h-9 rounded-xl border-2 border-ink grid place-items-center text-base transition-all active:translate-y-0.5 ${
+                q <= quality ? 'bg-tone shadow-pop-sm' : 'bg-white/60 hover:bg-tone-soft'
+              }`}
               aria-label={`Quality ${q}`}
-            />
+            >
+              {q <= quality ? '★' : '☆'}
+            </button>
           ))}
         </div>
       </div>
@@ -377,8 +387,8 @@ function WaterBlock({
       <div className="relative">
         <ProgressRing
           value={pct}
-          size={150}
-          stroke={5}
+          size={170}
+          stroke={12}
           label={`${(ml / 1000).toFixed(1)}L`}
           caption={`of ${(target / 1000).toFixed(1)}L`}
         />
@@ -395,7 +405,7 @@ function WaterBlock({
         ))}
       </div>
       <button
-        className="text-xs text-ink-mute hover:text-clay-deep underline underline-offset-4 decoration-rule"
+        className="text-xs font-bold text-ink-mute hover:text-ink underline underline-offset-4 decoration-2 decoration-tone"
         onClick={() => undoLastWater(date)}
       >
         undo last sip
@@ -436,6 +446,7 @@ function MoodBlock({
         onChange={(v) => { setMood(v); commit({ mood: v }); }}
         scaleLeft="dim"
         scaleRight="bright"
+        faces={['😞', '😕', '😐', '🙂', '😄']}
       />
       <Slider
         label="energy"
@@ -443,6 +454,7 @@ function MoodBlock({
         onChange={(v) => { setEnergy(v); commit({ energy: v }); }}
         scaleLeft="depleted"
         scaleRight="charged"
+        faces={['🪫', '😪', '🙂', '⚡', '🚀']}
       />
       <Slider
         label="stress"
@@ -450,6 +462,7 @@ function MoodBlock({
         onChange={(v) => { setStress(v); commit({ stress: v }); }}
         scaleLeft="calm"
         scaleRight="tense"
+        faces={['🧘', '😌', '😐', '😬', '🤯']}
       />
       {expected != null && (
         <div className="text-xs text-ink-mute border-t border-rule pt-3 leading-relaxed">
@@ -493,14 +506,14 @@ function SportBlock({
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <div>
-          <div className="font-display font-medium text-3xl leading-none nums">
+          <div className="font-display font-black text-4xl leading-none nums text-tone-deep">
             {sessions}
             <span className="text-ink-mute">/{targetSessions}</span>
           </div>
           <div className="label mt-1">sessions this week</div>
         </div>
         <div className="text-right">
-          <div className="font-display text-2xl leading-none nums">{totalMin}m</div>
+          <div className="font-display font-black text-2xl leading-none nums">{totalMin}m</div>
           <div className="label mt-1">of {targetMin}m goal</div>
         </div>
       </div>
@@ -547,7 +560,7 @@ function SportBlock({
           <ul className="text-xs text-ink-soft mt-1 space-y-0.5">
             {workoutsToday.map((w, i) => (
               <li key={i} className="flex justify-between">
-                <span>· {w.sport}</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-tone border border-ink" />{w.sport}</span>
                 <span className="nums text-ink-mute">{w.durationMin}m</span>
               </li>
             ))}

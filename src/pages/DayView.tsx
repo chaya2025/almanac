@@ -64,10 +64,10 @@ export default function DayView() {
 
       <div className="reveal">
         <div className="label mb-3">{prettyLongDate(date)}</div>
-        <h1 className="font-display font-medium text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95] tracking-tight">
+        <h1 className="font-display font-black text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95] tracking-tight">
           {format(parseISO(date), 'EEEE')},
           <br />
-          <span className="font-display-italic text-clay-deep">
+          <span className="font-display-italic tone-sun marker">
             the {format(parseISO(date), 'do')}
           </span>
           <span className="text-ink-soft"> of {format(parseISO(date), 'MMMM yyyy')}</span>

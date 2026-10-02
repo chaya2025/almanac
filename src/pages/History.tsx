@@ -9,6 +9,16 @@ import Rule from '@/components/Rule';
 
 const WEEKS = 26; // ~6 months
 
+
+// mood 1..5: coral → tangerine → sunflower → lime → leaf
+const MOOD_COLORS = [
+  'rgb(var(--coral))',
+  'rgb(var(--tang))',
+  'rgb(var(--sun))',
+  'rgb(160 214 80)',
+  'rgb(var(--leaf))',
+];
+
 export default function History() {
   const today = todayKey();
   const startCol = startOfWeek(subDays(parseISO(today), (WEEKS - 1) * 7), { weekStartsOn: 1 });
@@ -56,8 +66,8 @@ export default function History() {
     <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-10">
       <div className="reveal">
         <div className="label">section iii.</div>
-        <h1 className="font-display font-medium text-5xl md:text-6xl mt-1">
-          Days, <span className="font-display-italic text-clay-deep">past</span>
+        <h1 className="font-display font-black text-5xl md:text-7xl mt-1 tracking-tight">
+          <span className="bg-gradient-to-r from-aqua via-leaf to-sun bg-clip-text text-transparent">Days,</span>{' '}<span className="font-display-italic tone-pink marker">past</span>
         </h1>
         <Rule />
       </div>
@@ -66,13 +76,13 @@ export default function History() {
         <div className="flex items-baseline justify-between mb-3">
           <div className="label">last six months · click any square</div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-ink-mute">
-            <span>fewer</span>
+            <span>low mood</span>
             <div className="flex gap-0.5">
-              {[0.2, 0.4, 0.6, 0.8, 1].map((a) => (
-                <div key={a} className="w-3 h-3" style={{ backgroundColor: `rgb(var(--moss) / ${a})` }} />
+              {MOOD_COLORS.map((c) => (
+                <div key={c} className="w-3 h-3 rounded-[3px] border border-ink/70" style={{ backgroundColor: c }} />
               ))}
             </div>
-            <span>more</span>
+            <span>great</span>
           </div>
         </div>
 
@@ -126,17 +136,14 @@ function Cell({
   cell: { date: string; mood?: number; isToday: boolean; isFuture: boolean };
 }) {
   if (cell.isFuture) return <div className="aspect-square" />;
-  const bg =
-    cell.mood == null
-      ? 'rgb(var(--paper-2) / 0.5)'
-      : `rgb(var(--moss) / ${0.2 + (cell.mood / 5) * 0.7})`;
+  const bg = cell.mood == null ? 'rgb(var(--ink) / 0.05)' : MOOD_COLORS[Math.max(0, Math.min(4, Math.round(cell.mood) - 1))];
   return (
     <Link
       to={`/day/${cell.date}`}
       title={`${format(parseISO(cell.date), 'EEEE d MMM')} · mood ${cell.mood ?? '–'}/5`}
       className={clsx(
-        'aspect-square border transition-all hover:scale-110 hover:z-10 relative',
-        cell.isToday ? 'border-clay ring-1 ring-clay' : 'border-rule hover:border-ink'
+        'aspect-square rounded-[6px] border-[1.5px] transition-all hover:scale-125 hover:-rotate-6 hover:z-10 relative',
+        cell.isToday ? 'border-ink ring-2 ring-ink ring-offset-2 ring-offset-paper' : cell.mood == null ? 'border-transparent hover:border-ink' : 'border-ink/70 hover:border-ink'
       )}
       style={{ backgroundColor: bg }}
     />

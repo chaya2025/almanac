@@ -9,20 +9,20 @@ import {
   YAxis,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import ChartFrame, { axisStyle, palette, tooltipStyle } from './ChartFrame';
+import ChartFrame, { axisStyle, palette, tooltipStyle, gridProps, xAxisLine } from './ChartFrame';
 import type { FoodGroup } from '@/types';
 
 type Stack = { date: string } & Partial<Record<FoodGroup, number>>;
 
 const GROUP_COLORS: Record<FoodGroup, string> = {
-  protein: palette.clayDeep,
-  veg: palette.mossDeep,
-  fruit: palette.moss,
-  grain: palette.amber,
-  dairy: palette.inkSoft,
-  fat: palette.inkMute,
-  sweet: palette.clay,
-  drink: palette.rule,
+  protein: palette.coral,
+  veg: palette.leaf,
+  fruit: palette.pink,
+  grain: palette.sun,
+  dairy: palette.aqua,
+  fat: palette.tang,
+  sweet: palette.night,
+  drink: 'rgb(170 160 190)',
 };
 
 const ORDER: FoodGroup[] = ['veg', 'fruit', 'protein', 'grain', 'dairy', 'fat', 'sweet', 'drink'];
@@ -40,13 +40,13 @@ export default function MealsChart({
   return (
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
-          <CartesianGrid stroke={palette.rule} vertical={false} strokeDasharray="2 4" />
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+          <CartesianGrid {...gridProps} />
           <XAxis
             dataKey="date"
             tick={axisStyle}
             tickLine={false}
-            axisLine={{ stroke: palette.ink }}
+            axisLine={xAxisLine}
             tickFormatter={(d) => formatTick(d, granularity)}
             interval="preserveStartEnd"
           />
@@ -59,17 +59,19 @@ export default function MealsChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ fill: palette.ink, opacity: 0.04 }}
+            cursor={{ fill: palette.tang, opacity: 0.1 }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
           />
           <Legend
             iconSize={10}
+            iconType="circle"
             wrapperStyle={{
               fontFamily: '"DM Sans", sans-serif',
               fontSize: 10,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              color: palette.inkMute,
+              fontWeight: 700,
+              color: palette.inkSoft,
               paddingTop: 4,
             }}
           />
@@ -79,6 +81,9 @@ export default function MealsChart({
               dataKey={g}
               stackId="a"
               fill={GROUP_COLORS[g]}
+              stroke={palette.ink}
+              strokeWidth={1}
+              maxBarSize={28}
               isAnimationActive
             />
           ))}

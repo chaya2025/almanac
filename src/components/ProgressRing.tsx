@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 type Props = {
   value: number; // 0..1
   size?: number;
@@ -6,74 +8,93 @@ type Props = {
   caption?: string;
 };
 
+// A glass that fills with water: wavy liquid inside, a fat progress ring around it.
 export default function ProgressRing({
   value,
   size = 128,
-  stroke = 6,
+  stroke = 12,
   label,
   caption,
 }: Props) {
+  const id = useId().replace(/:/g, '');
   const clamped = Math.max(0, Math.min(1, value));
-  const r = (size - stroke) / 2;
+  const r = (size - stroke) / 2 - 2;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - clamped);
+  const inner = r - stroke / 2 - 4;
+  const cx = size / 2;
+  // liquid surface height inside the inner circle
+  const top = cx + inner - clamped * inner * 2;
+  const done = clamped >= 1;
 
   return (
     <div className="relative inline-block" style={{ width: size, height: size }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="-rotate-90"
-      >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <defs>
+          <clipPath id={`glass-${id}`}>
+            <circle cx={cx} cy={cx} r={inner} />
+          </clipPath>
+          <linearGradient id={`ring-${id}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="rgb(var(--tone))" />
+            <stop offset="100%" stopColor="rgb(var(--night))" />
+          </linearGradient>
+        </defs>
+
+        {/* liquid */}
+        <circle cx={cx} cy={cx} r={inner} fill="rgb(var(--tone-soft))" />
+        <g clipPath={`url(#glass-${id})`}>
+          <g style={{ transform: `translateY(${top}px)`, transition: 'transform 0.9s cubic-bezier(0.2,0.7,0.2,1)' }}>
+            <path
+              d={wave(size * 2, 7)}
+              fill="rgb(var(--tone) / 0.45)"
+              style={{ animation: 'almanacWave 3.2s linear infinite' }}
+            />
+            <path
+              d={wave(size * 2, 5)}
+              fill="rgb(var(--tone) / 0.85)"
+              transform="translate(0 4)"
+              style={{ animation: 'almanacWave 2.2s linear infinite reverse' }}
+            />
+          </g>
+        </g>
+        <circle cx={cx} cy={cx} r={inner} fill="none" stroke="rgb(var(--ink))" strokeWidth={2} />
+
+        {/* ring */}
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgb(var(--ink) / 0.08)" strokeWidth={stroke} />
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={cx}
+          cy={cx}
           r={r}
           fill="none"
-          stroke="rgb(var(--rule))"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="rgb(var(--ink))"
+          stroke={`url(#ring-${id})`}
           strokeWidth={stroke}
           strokeDasharray={c}
           strokeDashoffset={offset}
-          strokeLinecap="butt"
-          style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.2,0.7,0.2,1)' }}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cx})`}
+          style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.2,0.7,0.2,1)' }}
         />
-        {/* tick marks at 0, 25, 50, 75 */}
-        {[0, 0.25, 0.5, 0.75].map((p) => {
-          const angle = p * 2 * Math.PI - Math.PI / 2;
-          const x1 = size / 2 + Math.cos(angle) * (r + stroke / 2 + 2);
-          const y1 = size / 2 + Math.sin(angle) * (r + stroke / 2 + 2);
-          const x2 = size / 2 + Math.cos(angle) * (r + stroke / 2 + 6);
-          const y2 = size / 2 + Math.sin(angle) * (r + stroke / 2 + 6);
-          return (
-            <line
-              key={p}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="rgb(var(--ink-mute))"
-              strokeWidth={1}
-            />
-          );
-        })}
       </svg>
+      <style>{`@keyframes almanacWave { from { transform: translateX(0); } to { transform: translateX(-${size}px); } }`}</style>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         {label && (
-          <div className="font-display font-medium text-3xl leading-none nums">
+          <div className="font-display font-black text-3xl leading-none nums drop-shadow-[0_1px_0_white]">
             {label}
           </div>
         )}
-        {caption && <div className="label mt-1">{caption}</div>}
+        {caption && <div className="label mt-1 !text-ink-soft">{done ? 'goal hit ✓' : caption}</div>}
       </div>
     </div>
   );
+}
+
+// A strip of sine wave, twice as wide as the glass so it can scroll seamlessly.
+function wave(width: number, amp: number) {
+  const period = width / 4;
+  let d = `M 0 0`;
+  for (let x = 0; x <= width; x += period / 2) {
+    const up = (x / (period / 2)) % 2 === 0;
+    d += ` Q ${x + period / 4} ${up ? -amp : amp} ${x + period / 2} 0`;
+  }
+  return `${d} L ${width} 400 L 0 400 Z`;
 }

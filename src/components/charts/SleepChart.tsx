@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import ChartFrame, { axisStyle, palette, tooltipStyle, labelStyle } from './ChartFrame';
+import ChartFrame, { axisStyle, palette, tooltipStyle, labelStyle, gridProps, xAxisLine, Gradient } from './ChartFrame';
 
 type Point = { date: string; hours: number | null; rolling?: number | null; bedtimeH?: number | null };
 
@@ -30,18 +30,16 @@ export default function SleepChart({
   return (
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: -16 }}>
+        <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
           <defs>
-            <pattern id="sleep-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="6" stroke={palette.ink} strokeWidth="1" opacity="0.45" />
-            </pattern>
+            <Gradient id="sleep-fill" color={palette.night} from={0.75} to={0.08} />
           </defs>
-          <CartesianGrid stroke={palette.rule} vertical={false} strokeDasharray="2 4" />
+          <CartesianGrid {...gridProps} />
           <XAxis
             dataKey="date"
             tick={axisStyle}
             tickLine={false}
-            axisLine={{ stroke: palette.ink, strokeWidth: 1 }}
+            axisLine={xAxisLine}
             tickFormatter={(d) => formatTick(d, granularity)}
             interval="preserveStartEnd"
           />
@@ -56,13 +54,14 @@ export default function SleepChart({
           />
           <ReferenceLine
             y={target}
-            stroke={palette.clay}
-            strokeDasharray="4 4"
-            label={{ value: `target ${target}h`, position: 'right', ...labelStyle, fill: palette.clayDeep }}
+            stroke={palette.coral}
+            strokeWidth={2}
+            strokeDasharray="6 5"
+            label={{ value: `target ${target}h`, position: 'insideTopRight', ...labelStyle, fill: palette.coral }}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ stroke: palette.ink, strokeWidth: 1, strokeDasharray: '2 4' }}
+            cursor={{ stroke: palette.night, strokeWidth: 2, strokeDasharray: '4 4' }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
             formatter={(v: number, name) => [
               v != null ? `${v.toFixed(1)} h` : '—',
@@ -72,11 +71,11 @@ export default function SleepChart({
           <Area
             type="monotone"
             dataKey="hours"
-            stroke={palette.ink}
-            strokeWidth={1.5}
-            fill="url(#sleep-hatch)"
-            dot={{ stroke: palette.ink, fill: palette.paper, strokeWidth: 1, r: 2.5 }}
-            activeDot={{ stroke: palette.clayDeep, fill: palette.paper, strokeWidth: 2, r: 4 }}
+            stroke={palette.night}
+            strokeWidth={3}
+            fill="url(#sleep-fill)"
+            dot={{ stroke: palette.ink, fill: palette.white, strokeWidth: 2, r: 3.5 }}
+            activeDot={{ stroke: palette.ink, fill: palette.sun, strokeWidth: 2, r: 6 }}
             isAnimationActive
             connectNulls
           />
@@ -84,8 +83,9 @@ export default function SleepChart({
             <Area
               type="monotone"
               dataKey="rolling"
-              stroke={palette.clayDeep}
-              strokeWidth={2}
+              stroke={palette.pink}
+              strokeWidth={3}
+              strokeLinecap="round"
               fill="none"
               dot={false}
               isAnimationActive
@@ -95,10 +95,10 @@ export default function SleepChart({
             <Line
               type="monotone"
               dataKey="bedtimeH"
-              stroke={palette.mossDeep}
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
-              dot={{ stroke: palette.mossDeep, fill: palette.paper, strokeWidth: 1, r: 2 }}
+              stroke={palette.leaf}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={{ stroke: palette.leaf, fill: palette.white, strokeWidth: 2, r: 2.5 }}
               isAnimationActive
               connectNulls
             />

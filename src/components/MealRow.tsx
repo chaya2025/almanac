@@ -26,14 +26,14 @@ const groupGlyph: Record<FoodGroup, string> = {
 };
 
 const groupClass: Record<FoodGroup, string> = {
-  protein: 'border-clay text-clay-deep',
-  veg: 'border-moss text-moss-deep',
-  fruit: 'border-moss text-moss-deep',
-  grain: 'border-amber text-amber',
-  dairy: 'border-ink-mute text-ink-soft',
-  fat: 'border-ink-mute text-ink-soft',
-  sweet: 'border-clay text-clay-deep',
-  drink: 'border-ink-mute text-ink-soft',
+  protein: 'border-ink bg-coral/25 text-ink',
+  veg: 'border-ink bg-leaf/25 text-ink',
+  fruit: 'border-ink bg-pink/25 text-ink',
+  grain: 'border-ink bg-sun/35 text-ink',
+  dairy: 'border-ink bg-aqua/25 text-ink',
+  fat: 'border-ink bg-tang/25 text-ink',
+  sweet: 'border-ink bg-night/20 text-ink',
+  drink: 'border-ink bg-ink/10 text-ink',
 };
 
 const LAST_GROUP_KEY = 'almanac:lastGroup';
@@ -132,10 +132,10 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
   };
 
   return (
-    <div ref={containerRef} className="py-3 border-b border-rule last:border-b-0">
+    <div ref={containerRef} className="py-3 border-b-2 border-dashed border-ink/10 last:border-b-0">
       <div className="flex items-baseline justify-between gap-3 mb-2">
         <div className="flex items-baseline gap-3">
-          <span className="font-display text-lg font-medium leading-none">{label}</span>
+          <span className="font-display text-lg font-bold leading-none">{label}</span>
           <span className="label">{items.length ? `${items.length} item${items.length > 1 ? 's' : ''}` : '—'}</span>
         </div>
         <ScoreChip score={items.length ? score : null} />
@@ -147,7 +147,7 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
             <li
               key={i}
               className={clsx(
-                'group inline-flex items-center gap-1.5 px-2 py-1 text-[12px] border rounded-sm bg-paper/60',
+                'group inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium border-[1.5px] rounded-full',
                 groupClass[it.group]
               )}
             >
@@ -196,7 +196,7 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
           }}
         />
         {open && (
-          <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-paper border border-ink/30 max-h-72 overflow-auto shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border-2 border-ink rounded-2xl max-h-72 overflow-auto shadow-pop">
             {matches.map((f) => (
               <button
                 key={f.id ?? f.name}
@@ -271,7 +271,7 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
               ↺ load saved meal
             </button>
             {showSavedList && (
-              <div className="absolute z-10 left-0 top-full mt-1 bg-paper border border-ink/30 min-w-[220px] max-h-60 overflow-auto shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+              <div className="absolute z-10 left-0 top-full mt-1 bg-white border-2 border-ink rounded-2xl min-w-[220px] max-h-60 overflow-auto shadow-pop">
                 {(savedMeals ?? []).map((m) => (
                   <button
                     key={m.id}
@@ -345,11 +345,11 @@ function SaveAsControl({
 function ScoreChip({ score }: { score: number | null }) {
   if (score == null) return <span className="text-ink-mute text-xs">—</span>;
   const tone =
-    score >= 75 ? 'text-moss-deep border-moss' :
-    score >= 50 ? 'text-amber border-amber' :
-    'text-clay-deep border-clay';
+    score >= 75 ? 'bg-moss text-white' :
+    score >= 50 ? 'bg-sun text-ink' :
+    'bg-coral text-white';
   return (
-    <span className={clsx('inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.15em] border rounded-sm bg-paper nums', tone)}>
+    <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-black border-2 border-ink rounded-full shadow-pop-sm nums', tone)}>
       {score}
     </span>
   );

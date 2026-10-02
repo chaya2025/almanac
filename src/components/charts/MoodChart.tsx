@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import ChartFrame, { axisStyle, palette, tooltipStyle } from './ChartFrame';
+import ChartFrame, { axisStyle, palette, tooltipStyle, gridProps, xAxisLine, Gradient } from './ChartFrame';
 
 type Point = {
   date: string;
@@ -31,13 +31,16 @@ export default function MoodChart({
   return (
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-          <CartesianGrid stroke={palette.rule} vertical={false} strokeDasharray="2 4" />
+        <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <Gradient id="mood-sleep" color={palette.night} from={0.45} to={0.12} />
+          </defs>
+          <CartesianGrid {...gridProps} />
           <XAxis
             dataKey="date"
             tick={axisStyle}
             tickLine={false}
-            axisLine={{ stroke: palette.ink }}
+            axisLine={xAxisLine}
             tickFormatter={(d) => formatTick(d, granularity)}
             interval="preserveStartEnd"
           />
@@ -63,25 +66,26 @@ export default function MoodChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ stroke: palette.ink, strokeDasharray: '2 4' }}
+            cursor={{ stroke: palette.pink, strokeWidth: 2, strokeDasharray: '4 4' }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
           />
           <Bar
             yAxisId="sleep"
             dataKey="sleepHours"
-            fill={palette.rule}
-            opacity={0.5}
-            barSize={6}
+            fill="url(#mood-sleep)"
+            radius={[6, 6, 2, 2]}
+            barSize={10}
             isAnimationActive
           />
           <Line
             yAxisId="mood"
             type="monotone"
             dataKey="mood"
-            stroke={palette.clayDeep}
-            strokeWidth={1.5}
-            dot={{ stroke: palette.clayDeep, fill: palette.paper, strokeWidth: 1, r: 2.5 }}
-            activeDot={{ r: 4 }}
+            stroke={palette.pink}
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{ stroke: palette.ink, fill: palette.pink, strokeWidth: 1.5, r: 3.5 }}
+            activeDot={{ r: 6, stroke: palette.ink, strokeWidth: 2, fill: palette.pink }}
             isAnimationActive
             connectNulls
           />
@@ -89,10 +93,11 @@ export default function MoodChart({
             yAxisId="mood"
             type="monotone"
             dataKey="energy"
-            stroke={palette.mossDeep}
-            strokeWidth={1.5}
-            dot={{ stroke: palette.mossDeep, fill: palette.paper, strokeWidth: 1, r: 2.5 }}
-            activeDot={{ r: 4 }}
+            stroke={palette.amber}
+            strokeWidth={3}
+            strokeLinecap="round"
+            dot={{ stroke: palette.ink, fill: palette.sun, strokeWidth: 1.5, r: 3.5 }}
+            activeDot={{ r: 6, stroke: palette.ink, strokeWidth: 2, fill: palette.sun }}
             isAnimationActive
             connectNulls
           />

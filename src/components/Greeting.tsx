@@ -17,9 +17,10 @@ export default function Greeting({ name }: { name?: string }) {
   const greeting = phraseFor(hour);
   const display = name?.trim() || 'friend';
   return (
-    <div className="font-display text-xl md:text-2xl text-ink-soft mb-2 reveal">
+    <div className="font-display text-xl md:text-2xl text-ink-soft mb-2 reveal tone-pink">
       {greeting}{' '}
-      <span className="font-display-italic text-clay-deep">{display}</span>.
+      <span className="font-display-italic font-bold text-ink marker">{display}</span>
+      <span className="inline-block ml-1 animate-float" aria-hidden>✿</span>
     </div>
   );
 }

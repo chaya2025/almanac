@@ -1,7 +1,8 @@
 import {
   CartesianGrid,
   Line,
-  LineChart,
+  ComposedChart,
+  Area,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -9,7 +10,7 @@ import {
   ReferenceDot,
 } from 'recharts';
 import { format, parseISO, getDay } from 'date-fns';
-import ChartFrame, { axisStyle, palette, tooltipStyle } from './ChartFrame';
+import ChartFrame, { axisStyle, palette, tooltipStyle, gridProps, xAxisLine, Gradient } from './ChartFrame';
 
 type Point = { date: string; kg: number; trend: number | null };
 
@@ -42,13 +43,16 @@ export default function WeightChart({
   return (
     <ChartFrame height={height}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
-          <CartesianGrid stroke={palette.rule} vertical={false} strokeDasharray="2 4" />
+        <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <Gradient id="weight-fill" color={palette.sun} from={0.7} to={0.05} />
+          </defs>
+          <CartesianGrid {...gridProps} />
           <XAxis
             dataKey="date"
             tick={axisStyle}
             tickLine={false}
-            axisLine={{ stroke: palette.ink }}
+            axisLine={xAxisLine}
             tickFormatter={(d) => format(parseISO(d), 'd MMM')}
             interval="preserveStartEnd"
           />
@@ -62,28 +66,29 @@ export default function WeightChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ stroke: palette.ink, strokeDasharray: '2 4' }}
+            cursor={{ stroke: palette.tang, strokeWidth: 2, strokeDasharray: '4 4' }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM yyyy')}
             formatter={(v: number, name) => [
               `${v.toFixed(1)} kg`,
               name === 'kg' ? 'weighed' : '4-pt trend',
             ]}
           />
-          <Line
+          <Area
             type="monotone"
             dataKey="kg"
             stroke={palette.ink}
-            strokeWidth={1.5}
-            dot={{ stroke: palette.ink, fill: palette.paper, strokeWidth: 1.5, r: 3 }}
-            activeDot={{ stroke: palette.clayDeep, fill: palette.paper, strokeWidth: 2, r: 5 }}
+            strokeWidth={2.5}
+            fill="url(#weight-fill)"
+            dot={{ stroke: palette.ink, fill: palette.white, strokeWidth: 2, r: 3.5 }}
+            activeDot={{ stroke: palette.ink, fill: palette.sun, strokeWidth: 2, r: 6 }}
             isAnimationActive
           />
           <Line
             type="monotone"
             dataKey="trend"
-            stroke={palette.clayDeep}
-            strokeWidth={2}
-            strokeDasharray="3 3"
+            stroke={palette.tang}
+            strokeWidth={3}
+            strokeLinecap="round"
             dot={false}
             isAnimationActive
           />
@@ -92,13 +97,13 @@ export default function WeightChart({
               key={s.date}
               x={s.date}
               y={s.kg}
-              r={4}
-              fill={palette.clayDeep}
-              stroke={palette.paper}
-              strokeWidth={1.5}
+              r={5}
+              fill={palette.tang}
+              stroke={palette.ink}
+              strokeWidth={2}
             />
           ))}
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartFrame>
   );
