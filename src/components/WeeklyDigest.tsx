@@ -55,15 +55,15 @@ export default function WeeklyDigest({ profile }: { profile: Profile }) {
 
   return (
     <section
-      className="reveal tone-night mb-6 border-2 border-ink rounded-[22px] bg-white/80 shadow-[6px_6px_0_0_rgb(var(--night))] p-5 md:p-6"
+      className="reveal tone-night mb-6 rounded-2xl border border-rule bg-white/85 shadow-[0_12px_32px_-18px_rgb(28_30_36/0.14)] p-5 md:p-6"
       style={{ animationDelay: '20ms' }}
     >
       <header className="flex items-baseline justify-between mb-4">
         <div>
-          <span className="tone-chip"><span className="tone-chip-icon" aria-hidden>✦</span>last week’s digest</span>
-          <h2 className="font-display font-black text-3xl md:text-4xl mt-2 leading-tight tracking-tight">
+          <div className="label">last week’s digest</div>
+          <h2 className="font-display font-normal text-3xl md:text-4xl mt-1 leading-tight">
             The week of{' '}
-            <span className="font-display-italic text-night">{weekRange}</span>
+            <span className="font-display-italic text-clay-deep">{weekRange}</span>
           </h2>
         </div>
         <button
@@ -150,7 +150,7 @@ export default function WeeklyDigest({ profile }: { profile: Profile }) {
 function Column({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="label mb-3 border-t-2 border-ink/10 pt-3 md:border-t-0 md:pt-0"><span className="bg-tone-soft rounded-full px-2 py-0.5 !text-ink">{heading}</span></div>
+      <div className="label mb-3 border-t border-rule pt-3 md:border-t-0 md:pt-0">{heading}</div>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
@@ -170,7 +170,7 @@ function Stat({
   const body = (
     <>
       <div className="label">{label}</div>
-      <div className="font-display font-black text-2xl leading-none nums mt-1 text-tone-deep">{value}</div>
+      <div className="font-display text-2xl leading-none nums mt-1 text-tone">{value}</div>
       {sub && <div className="text-xs text-ink-mute mt-0.5 nums">{sub}</div>}
     </>
   );

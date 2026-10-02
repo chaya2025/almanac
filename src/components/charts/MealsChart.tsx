@@ -15,14 +15,14 @@ import type { FoodGroup } from '@/types';
 type Stack = { date: string } & Partial<Record<FoodGroup, number>>;
 
 const GROUP_COLORS: Record<FoodGroup, string> = {
-  protein: palette.coral,
-  veg: palette.leaf,
-  fruit: palette.pink,
-  grain: palette.sun,
-  dairy: palette.aqua,
-  fat: palette.tang,
-  sweet: palette.night,
-  drink: 'rgb(170 160 190)',
+  veg: 'rgb(74 118 82)',
+  fruit: 'rgb(140 170 110)',
+  protein: 'rgb(184 92 56)',
+  grain: 'rgb(184 140 52)',
+  dairy: 'rgb(110 150 170)',
+  fat: 'rgb(214 180 120)',
+  sweet: 'rgb(140 62 96)',
+  drink: 'rgb(200 196 186)',
 };
 
 const ORDER: FoodGroup[] = ['veg', 'fruit', 'protein', 'grain', 'dairy', 'fat', 'sweet', 'drink'];
@@ -59,19 +59,18 @@ export default function MealsChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ fill: palette.tang, opacity: 0.1 }}
+            cursor={{ fill: palette.ink, opacity: 0.03 }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
           />
           <Legend
-            iconSize={10}
+            iconSize={8}
             iconType="circle"
             wrapperStyle={{
               fontFamily: '"DM Sans", sans-serif',
               fontSize: 10,
-              letterSpacing: '0.18em',
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              fontWeight: 700,
-              color: palette.inkSoft,
+              color: palette.inkMute,
               paddingTop: 4,
             }}
           />
@@ -81,9 +80,7 @@ export default function MealsChart({
               dataKey={g}
               stackId="a"
               fill={GROUP_COLORS[g]}
-              stroke={palette.ink}
-              strokeWidth={1}
-              maxBarSize={28}
+              maxBarSize={22}
               isAnimationActive
             />
           ))}

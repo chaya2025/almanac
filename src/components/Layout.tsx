@@ -3,10 +3,10 @@ import { format } from 'date-fns';
 import clsx from 'clsx';
 
 const nav = [
-  { to: '/', label: 'Today', tone: 'tone-coral' },
-  { to: '/trends', label: 'Trends', tone: 'tone-night' },
-  { to: '/history', label: 'History', tone: 'tone-aqua' },
-  { to: '/settings', label: 'Settings', tone: 'tone-sun' },
+  { to: '/', label: 'Today' },
+  { to: '/trends', label: 'Trends' },
+  { to: '/history', label: 'History' },
+  { to: '/settings', label: 'Settings' },
 ];
 
 export default function Layout() {
@@ -15,11 +15,11 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-30 px-3 md:px-6 pt-3">
-        <div className="max-w-[1280px] mx-auto px-2.5 sm:px-4 md:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 bg-white/85 backdrop-blur border-2 border-ink rounded-full shadow-pop">
-          <NavLink to="/" className="flex items-center gap-2.5 shrink-0 group">
-            <Logo />
-            <span className="hidden sm:inline font-display font-black text-lg md:text-xl tracking-[0.14em] leading-none">
+      <header className="sticky top-0 z-30 bg-paper/80 backdrop-blur-md border-b border-rule">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-10 h-14 flex items-center justify-between gap-4">
+          <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+            <Mark />
+            <span className="hidden sm:inline font-display text-lg tracking-[0.22em] leading-none">
               ALMANAC
             </span>
           </NavLink>
@@ -32,11 +32,8 @@ export default function Layout() {
                   key={n.to}
                   to={n.to}
                   className={clsx(
-                    n.tone,
-                    'px-2 sm:px-3 md:px-4 py-1.5 text-[10px] sm:text-[11px] md:text-xs uppercase tracking-[0.08em] sm:tracking-[0.14em] font-bold rounded-full border-2 transition-all whitespace-nowrap',
-                    active
-                      ? 'bg-tone border-ink shadow-pop-sm text-ink'
-                      : 'border-transparent text-ink-soft hover:bg-tone-soft hover:text-ink'
+                    'relative px-2.5 sm:px-3.5 py-1.5 text-[13px] rounded-lg transition-colors whitespace-nowrap',
+                    active ? 'text-ink font-medium bg-white shadow-[0_1px_2px_rgb(28_30_36/0.06)] ring-1 ring-rule' : 'text-ink-mute hover:text-ink'
                   )}
                 >
                   {n.label}
@@ -45,9 +42,7 @@ export default function Layout() {
             })}
           </nav>
 
-          <div className="hidden md:block text-xs font-bold nums text-ink-soft bg-sun/40 border-2 border-ink rounded-full px-3 py-1 shrink-0">
-            {dateStr}
-          </div>
+          <div className="hidden md:block text-[13px] nums text-ink-mute shrink-0">{dateStr}</div>
         </div>
       </header>
 
@@ -55,38 +50,37 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="mt-12 pb-6 px-6">
-        <div className="max-w-[1280px] mx-auto flex flex-wrap gap-2 items-center justify-between text-xs">
-          <span className="label">Vol. I · {format(new Date(), 'yyyy')}</span>
-          <span className="inline-flex items-center gap-1.5 label">
-            <span className="h-2 w-2 rounded-full bg-leaf border border-ink" /> stored locally · yours alone
-          </span>
+      <footer className="border-t border-rule mt-16">
+        <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-6 flex flex-wrap gap-2 items-center justify-between">
+          <span className="label">Almanac · {format(new Date(), 'yyyy')}</span>
+          <span className="label">stored on this device only</span>
         </div>
       </footer>
     </div>
   );
 }
 
-// Seven coloured petals, one per area of the day.
-function Logo() {
+// Seven thin arcs, one per area of the day, closing into a ring.
+function Mark() {
   const colors = ['--night', '--tang', '--aqua', '--pink', '--leaf', '--sun', '--coral'];
+  const r = 9;
+  const c = 2 * Math.PI * r;
+  const seg = c / colors.length;
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" className="transition-transform duration-500 group-hover:rotate-[51deg]" aria-hidden>
-      {colors.map((c, i) => {
-        const a = (i / colors.length) * Math.PI * 2;
-        return (
-          <circle
-            key={c}
-            cx={15 + Math.cos(a) * 8}
-            cy={15 + Math.sin(a) * 8}
-            r={5.2}
-            fill={`rgb(var(${c}))`}
-            stroke="rgb(var(--ink))"
-            strokeWidth={1.4}
-          />
-        );
-      })}
-      <circle cx="15" cy="15" r="4" fill="white" stroke="rgb(var(--ink))" strokeWidth={1.4} />
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden className="-rotate-90">
+      {colors.map((col, i) => (
+        <circle
+          key={col}
+          cx="12"
+          cy="12"
+          r={r}
+          fill="none"
+          stroke={`rgb(var(${col}))`}
+          strokeWidth="3"
+          strokeDasharray={`${seg - 1.6} ${c - seg + 1.6}`}
+          strokeDashoffset={-i * seg}
+        />
+      ))}
     </svg>
   );
 }

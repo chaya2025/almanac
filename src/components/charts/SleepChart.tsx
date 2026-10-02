@@ -32,7 +32,7 @@ export default function SleepChart({
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
           <defs>
-            <Gradient id="sleep-fill" color={palette.night} from={0.75} to={0.08} />
+            <Gradient id="sleep-fill" color={palette.night} from={0.28} to={0.02} />
           </defs>
           <CartesianGrid {...gridProps} />
           <XAxis
@@ -54,14 +54,13 @@ export default function SleepChart({
           />
           <ReferenceLine
             y={target}
-            stroke={palette.coral}
-            strokeWidth={2}
-            strokeDasharray="6 5"
-            label={{ value: `target ${target}h`, position: 'insideTopRight', ...labelStyle, fill: palette.coral }}
+            stroke={palette.inkMute}
+            strokeDasharray="3 4"
+            label={{ value: `target ${target}h`, position: 'insideTopRight', ...labelStyle }}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ stroke: palette.night, strokeWidth: 2, strokeDasharray: '4 4' }}
+            cursor={{ stroke: palette.ink, strokeWidth: 1, strokeDasharray: '2 4' }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
             formatter={(v: number, name) => [
               v != null ? `${v.toFixed(1)} h` : '—',
@@ -72,10 +71,10 @@ export default function SleepChart({
             type="monotone"
             dataKey="hours"
             stroke={palette.night}
-            strokeWidth={3}
+            strokeWidth={2}
             fill="url(#sleep-fill)"
-            dot={{ stroke: palette.ink, fill: palette.white, strokeWidth: 2, r: 3.5 }}
-            activeDot={{ stroke: palette.ink, fill: palette.sun, strokeWidth: 2, r: 6 }}
+            dot={false}
+            activeDot={{ stroke: palette.white, fill: palette.night, strokeWidth: 2, r: 5 }}
             isAnimationActive
             connectNulls
           />
@@ -84,8 +83,8 @@ export default function SleepChart({
               type="monotone"
               dataKey="rolling"
               stroke={palette.pink}
-              strokeWidth={3}
-              strokeLinecap="round"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
               fill="none"
               dot={false}
               isAnimationActive
@@ -96,9 +95,9 @@ export default function SleepChart({
               type="monotone"
               dataKey="bedtimeH"
               stroke={palette.leaf}
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              dot={{ stroke: palette.leaf, fill: palette.white, strokeWidth: 2, r: 2.5 }}
+              strokeWidth={1.25}
+              strokeDasharray="2 3"
+              dot={false}
               isAnimationActive
               connectNulls
             />

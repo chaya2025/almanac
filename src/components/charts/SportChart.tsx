@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import ChartFrame, { axisStyle, palette, tooltipStyle, labelStyle, gridProps, xAxisLine, Gradient } from './ChartFrame';
+import ChartFrame, { axisStyle, palette, tooltipStyle, labelStyle, gridProps, xAxisLine } from './ChartFrame';
 
 type Point = { date: string; minutes: number; sessions: number };
 
@@ -38,10 +38,6 @@ export default function SportChart({
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <defs>
-            <Gradient id="sport-hit" color={palette.leaf} from={1} to={0.65} />
-            <Gradient id="sport-some" color={palette.tang} from={0.95} to={0.5} />
-          </defs>
           <CartesianGrid {...gridProps} />
           <XAxis
             dataKey="date"
@@ -60,14 +56,13 @@ export default function SportChart({
           />
           <ReferenceLine
             y={referenceY}
-            stroke={palette.night}
-            strokeWidth={2}
-            strokeDasharray="6 5"
-            label={{ value: `${referenceY}m goal`, position: 'insideTopRight', ...labelStyle, fill: palette.night }}
+            stroke={palette.inkMute}
+            strokeDasharray="3 4"
+            label={{ value: `${referenceY}m goal`, position: 'insideTopRight', ...labelStyle }}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ fill: palette.leaf, opacity: 0.12 }}
+            cursor={{ fill: palette.ink, opacity: 0.03 }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
             formatter={(v: number, name: string, ctx) => {
               if (name === 'minutes') {
@@ -77,12 +72,12 @@ export default function SportChart({
               return [v, name];
             }}
           />
-          <Bar dataKey="minutes" isAnimationActive radius={[8, 8, 3, 3]} stroke={palette.ink} maxBarSize={28}>
+          <Bar dataKey="minutes" isAnimationActive radius={[4, 4, 0, 0]} maxBarSize={22}>
             {data.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.minutes >= referenceY ? 'url(#sport-hit)' : d.minutes > 0 ? 'url(#sport-some)' : 'transparent'}
-                strokeWidth={d.minutes > 0 ? 1.5 : 0}
+                fill={d.minutes > 0 ? palette.leaf : palette.rule}
+                fillOpacity={d.minutes >= referenceY ? 1 : 0.5}
               />
             ))}
           </Bar>

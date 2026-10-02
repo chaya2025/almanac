@@ -100,8 +100,8 @@ export default function Settings() {
     <div className="max-w-[820px] mx-auto px-6 md:px-10 py-10">
       <div className="reveal">
         <div className="label">section iv.</div>
-        <h1 className="font-display font-black text-5xl md:text-7xl mt-1 tracking-tight">
-          <span className="bg-gradient-to-r from-sun via-tang to-coral bg-clip-text text-transparent">Settings</span>
+        <h1 className="font-display font-normal text-5xl md:text-6xl mt-1 tracking-[-0.02em]">
+          Settings
         </h1>
         <Rule />
       </div>

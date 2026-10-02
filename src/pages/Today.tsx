@@ -118,6 +118,7 @@ export default function Today() {
           title="The Hours"
           className="col-span-12 md:col-span-4"
           style={{ animationDelay: '40ms' }}
+          image="/images/sleep.webp"
         >
           <SleepBlock profile={profile} sleep={sleep} date={date} debtHours={debtHours} />
         </Card>
@@ -128,6 +129,7 @@ export default function Today() {
           title="Today’s Plate"
           className="col-span-12 md:col-span-5 row-span-2"
           style={{ animationDelay: '120ms' }}
+          image="/images/table.webp"
           side={
             <span className="label">{profile.dietStyle.replace('-', ' ')}</span>
           }
@@ -156,6 +158,8 @@ export default function Today() {
           title="The Vessel"
           className="col-span-12 md:col-span-3"
           style={{ animationDelay: '200ms' }}
+          image="/images/water.webp"
+          imagePosition="50% 70%"
         >
           <WaterBlock profile={profile} ml={waterMl} date={date} />
         </Card>
@@ -166,6 +170,7 @@ export default function Today() {
           title="Mood & Energy"
           className="col-span-12 md:col-span-4"
           style={{ animationDelay: '280ms' }}
+          image="/images/mood.webp"
         >
           <MoodBlock day={day} date={date} sleepHours={sleep?.hours} />
         </Card>
@@ -176,6 +181,7 @@ export default function Today() {
           title="The Week’s Effort"
           className="col-span-12 md:col-span-3"
           style={{ animationDelay: '360ms' }}
+          image="/images/sport.webp"
         >
           <SportBlock
             profile={profile}
@@ -197,6 +203,8 @@ export default function Today() {
         title="A Note for the Record"
         className="reveal"
         style={{ animationDelay: '440ms' }}
+        image="/images/journal.webp"
+        imagePosition="50% 40%"
       >
         <textarea
           className="w-full bg-transparent outline-none font-serif text-lg leading-[1.7] text-ink min-h-[180px] dropcap resize-none"
@@ -221,23 +229,30 @@ function Masthead({ date }: { date: string }) {
   const monthYear = format(d, 'MMMM yyyy');
 
   return (
-    <div className="reveal relative">
-      <div className="label mb-3">{prettyLongDate(date)}</div>
-      <h1 className="font-display font-black text-[clamp(3.2rem,8vw,6.5rem)] leading-[0.92] tracking-tight">
-        <span className="bg-gradient-to-r from-coral via-pink to-night bg-clip-text text-transparent">{dayName},</span>
-        <br />
-        <span className="font-display-italic tone-sun marker">the {dayNum}</span>
-        <span className="text-ink-soft font-bold"> of {monthYear}</span>
-      </h1>
-      <div className="absolute right-0 top-2 hidden md:flex rotate-6 flex-col items-center justify-center h-28 w-28 rounded-full border-2 border-ink bg-sun shadow-pop animate-float">
-        <span className="label !text-ink">{format(d, 'MMM')}</span>
-        <span className="font-display font-black text-5xl leading-none nums">{format(d, 'd')}</span>
+    <div className="reveal grid md:grid-cols-[1.25fr_1fr] gap-6 md:gap-10 items-end mt-2">
+      <div className="order-2 md:order-1">
+        <div className="label mb-3">{prettyLongDate(date)}</div>
+        <h1 className="font-display font-normal text-[clamp(2.75rem,5.6vw,5.25rem)] leading-[0.98] tracking-[-0.02em]">
+          {dayName},
+          <br />
+          <span className="font-display-italic text-clay">the {dayNum}</span>
+          <span className="text-ink-mute"> of {monthYear}</span>
+        </h1>
       </div>
-      <div className="flex gap-1.5 mt-5 mb-1" aria-hidden>
-        {['night', 'tang', 'aqua', 'pink', 'leaf', 'sun', 'coral'].map((c) => (
-          <span key={c} className="h-2.5 flex-1 max-w-16 rounded-full border-2 border-ink" style={{ background: `rgb(var(--${c}))` }} />
-        ))}
-      </div>
+      <figure className="order-1 md:order-2 relative h-44 md:h-[260px] rounded-2xl overflow-hidden ring-1 ring-rule shadow-[0_20px_40px_-24px_rgb(28_30_36/0.35)]">
+        <img
+          src="/images/hero-sunrise.webp"
+          alt="First light over a meadow"
+          className="w-full h-full object-cover object-[50%_60%]"
+          style={{ filter: 'saturate(0.9)' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-black/0" />
+        <figcaption className="absolute left-4 bottom-3 right-4 flex items-end justify-between text-white">
+          <span className="font-display-italic text-lg leading-none">{timeOfDayLine()}</span>
+          <span className="text-[10px] uppercase tracking-[0.16em] text-white/75">{format(d, 'EEE d MMM')}</span>
+        </figcaption>
+      </figure>
+      <div className="order-3 md:col-span-2"><Rule className="!my-2" /></div>
     </div>
   );
 }
@@ -277,7 +292,7 @@ function SleepBlock({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-3 mt-1">
-        <span className="font-display font-black text-[4.5rem] leading-none nums text-tone-deep">
+        <span className="font-display font-normal text-[4.5rem] leading-none nums text-tone">
           {hours ? hours.toFixed(hours % 1 === 0 ? 0 : 1) : '—'}
         </span>
         <span className="font-display text-2xl text-ink-mute leading-none mb-2">h</span>
@@ -303,7 +318,7 @@ function SleepBlock({
 
       {hours > 0 && (
         <div className="text-xs">
-          <span className={clsx('inline-block font-bold px-2 py-0.5 rounded-full border-2 border-ink', diff >= -0.5 ? 'bg-moss text-white' : 'bg-clay text-white')}>
+          <span className={diff >= -0.5 ? 'text-moss-deep' : 'text-clay-deep'}>
             {diff >= 0 ? '+' : ''}{diff.toFixed(1)}h vs. target
           </span>
         </div>
@@ -357,13 +372,11 @@ function SleepBlock({
                 setQuality(q);
                 commit(bedtime, wakeTime, q);
               }}
-              className={`flex-1 h-9 rounded-xl border-2 border-ink grid place-items-center text-base transition-all active:translate-y-0.5 ${
-                q <= quality ? 'bg-tone shadow-pop-sm' : 'bg-white/60 hover:bg-tone-soft'
-              }`}
+              className={`flex-1 h-2 rounded-full transition-colors ${
+                q <= quality ? 'bg-tone' : 'bg-paper-3'
+              } hover:opacity-80`}
               aria-label={`Quality ${q}`}
-            >
-              {q <= quality ? '★' : '☆'}
-            </button>
+            />
           ))}
         </div>
       </div>
@@ -387,8 +400,8 @@ function WaterBlock({
       <div className="relative">
         <ProgressRing
           value={pct}
-          size={170}
-          stroke={12}
+          size={150}
+          stroke={6}
           label={`${(ml / 1000).toFixed(1)}L`}
           caption={`of ${(target / 1000).toFixed(1)}L`}
         />
@@ -405,7 +418,7 @@ function WaterBlock({
         ))}
       </div>
       <button
-        className="text-xs font-bold text-ink-mute hover:text-ink underline underline-offset-4 decoration-2 decoration-tone"
+        className="text-xs text-ink-mute hover:text-clay-deep underline underline-offset-4 decoration-rule"
         onClick={() => undoLastWater(date)}
       >
         undo last sip
@@ -446,7 +459,6 @@ function MoodBlock({
         onChange={(v) => { setMood(v); commit({ mood: v }); }}
         scaleLeft="dim"
         scaleRight="bright"
-        faces={['😞', '😕', '😐', '🙂', '😄']}
       />
       <Slider
         label="energy"
@@ -454,7 +466,6 @@ function MoodBlock({
         onChange={(v) => { setEnergy(v); commit({ energy: v }); }}
         scaleLeft="depleted"
         scaleRight="charged"
-        faces={['🪫', '😪', '🙂', '⚡', '🚀']}
       />
       <Slider
         label="stress"
@@ -462,7 +473,6 @@ function MoodBlock({
         onChange={(v) => { setStress(v); commit({ stress: v }); }}
         scaleLeft="calm"
         scaleRight="tense"
-        faces={['🧘', '😌', '😐', '😬', '🤯']}
       />
       {expected != null && (
         <div className="text-xs text-ink-mute border-t border-rule pt-3 leading-relaxed">
@@ -504,17 +514,17 @@ function SportBlock({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-display font-black text-4xl leading-none nums text-tone-deep">
+          <div className="font-display font-normal text-4xl leading-none nums text-tone">
             {sessions}
             <span className="text-ink-mute">/{targetSessions}</span>
           </div>
-          <div className="label mt-1">sessions this week</div>
+          <div className="label mt-1.5 leading-snug">sessions<br />this week</div>
         </div>
         <div className="text-right">
-          <div className="font-display font-black text-2xl leading-none nums">{totalMin}m</div>
-          <div className="label mt-1">of {targetMin}m goal</div>
+          <div className="font-display text-2xl leading-none nums">{totalMin}m</div>
+          <div className="label mt-1.5 leading-snug">of {targetMin}m<br />goal</div>
         </div>
       </div>
 
@@ -560,7 +570,7 @@ function SportBlock({
           <ul className="text-xs text-ink-soft mt-1 space-y-0.5">
             {workoutsToday.map((w, i) => (
               <li key={i} className="flex justify-between">
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-tone border border-ink" />{w.sport}</span>
+                <span>· {w.sport}</span>
                 <span className="nums text-ink-mute">{w.durationMin}m</span>
               </li>
             ))}
@@ -630,4 +640,13 @@ async function upsertDay(date: string, patch: Partial<{ mood: number; energy: nu
       updatedAt: now,
     });
   }
+}
+
+function timeOfDayLine() {
+  const h = new Date().getHours();
+  if (h < 5) return 'Rest well.';
+  if (h < 12) return 'A fresh page.';
+  if (h < 17) return 'Keep the thread.';
+  if (h < 21) return 'Ease into evening.';
+  return 'Close the day gently.';
 }

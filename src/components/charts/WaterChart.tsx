@@ -31,9 +31,7 @@ export default function WaterChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <defs>
-            <Gradient id="water-hit" color={palette.aqua} from={1} to={0.7} />
-            <Gradient id="water-near" color={palette.aqua} from={0.7} to={0.35} />
-            <Gradient id="water-low" color={palette.aqua} from={0.35} to={0.15} />
+            <Gradient id="water-bar" color={palette.aqua} from={0.95} to={0.6} />
           </defs>
           <CartesianGrid {...gridProps} />
           <XAxis
@@ -53,22 +51,22 @@ export default function WaterChart({
           />
           <ReferenceLine
             y={targetMl}
-            stroke={palette.night}
-            strokeWidth={2}
-            strokeDasharray="6 5"
-            label={{ value: `target ${(targetMl / 1000).toFixed(1)}L`, position: 'insideTopRight', ...labelStyle, fill: palette.night }}
+            stroke={palette.inkMute}
+            strokeDasharray="3 4"
+            label={{ value: `target ${(targetMl / 1000).toFixed(1)}L`, position: 'insideTopRight', ...labelStyle }}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ fill: palette.aqua, opacity: 0.12 }}
+            cursor={{ fill: palette.ink, opacity: 0.03 }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM')}
             formatter={(v: number) => [`${(v / 1000).toFixed(2)} L`, 'water']}
           />
-          <Bar dataKey="ml" isAnimationActive radius={[8, 8, 3, 3]} stroke={palette.ink} strokeWidth={1.5} maxBarSize={28}>
+          <Bar dataKey="ml" isAnimationActive radius={[4, 4, 0, 0]} maxBarSize={22}>
             {data.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.ml >= targetMl ? 'url(#water-hit)' : d.ml >= targetMl * 0.7 ? 'url(#water-near)' : 'url(#water-low)'}
+                fill="url(#water-bar)"
+                fillOpacity={d.ml >= targetMl ? 1 : d.ml >= targetMl * 0.7 ? 0.65 : 0.35}
               />
             ))}
           </Bar>

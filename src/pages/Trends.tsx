@@ -93,16 +93,23 @@ export default function Trends() {
 
   return (
     <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-10">
-      <div className="reveal">
-        <div className="label">section ii.</div>
-        <h1 className="font-display font-black text-5xl md:text-7xl mt-1 tracking-tight">
-          <span className="bg-gradient-to-r from-night via-pink to-tang bg-clip-text text-transparent">Trends,</span>{' '}
-          <span className="font-display-italic tone-aqua marker">over time</span>
-        </h1>
-        <Rule />
+      <div className="reveal grid md:grid-cols-[1.25fr_1fr] gap-6 md:gap-10 items-end">
+        <div className="order-2 md:order-1">
+          <div className="label">section ii.</div>
+          <h1 className="font-display font-normal text-5xl md:text-6xl mt-1 tracking-[-0.02em]">
+            Trends, <span className="font-display-italic text-night">over time</span>
+          </h1>
+          <p className="text-ink-soft mt-3 max-w-md leading-relaxed">
+            How your sleep, plate, water, effort and mood move together, day by day.
+          </p>
+        </div>
+        <figure className="order-1 md:order-2 h-36 md:h-48 rounded-2xl overflow-hidden ring-1 ring-rule">
+          <img src="/images/trends.webp" alt="An open notebook with glasses" className="w-full h-full object-cover" style={{ filter: 'saturate(0.85)' }} />
+        </figure>
+        <div className="order-3 md:col-span-2"><Rule className="!my-2" /></div>
       </div>
 
-      <div className="reveal flex flex-wrap items-center gap-2 mb-8">
+      <div className="reveal flex flex-wrap items-end gap-1 mb-8 border-b border-rule pb-4">
         {TABS.map((t) => {
           const active = t.v === g;
           return (
@@ -110,16 +117,16 @@ export default function Trends() {
               key={t.v}
               onClick={() => setG(t.v)}
               className={clsx(
-                'tone-night group flex-1 sm:flex-none flex flex-col items-start px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl border-2 border-ink transition-all',
-                active ? 'bg-tone text-white shadow-pop -translate-y-0.5' : 'bg-white/70 text-ink hover:bg-tone-soft shadow-pop-sm'
+                'group flex flex-col items-start px-4 py-2 border-b-2 -mb-[17px] transition-colors',
+                active ? 'border-clay text-ink' : 'border-transparent text-ink-mute hover:text-ink'
               )}
             >
-              <span className="font-display font-bold text-xl sm:text-2xl leading-none">{t.label}</span>
-              <span className={clsx('label mt-1 !text-[9px] sm:!text-[11px] !tracking-[0.1em] sm:!tracking-[0.18em]', active && '!text-white/80')}>{t.sub}</span>
+              <span className="font-display text-2xl leading-none">{t.label}</span>
+              <span className="label mt-1">{t.sub}</span>
             </button>
           );
         })}
-        <div className="ml-auto text-xs font-bold nums hidden md:block bg-white/70 border-2 border-ink rounded-full px-3 py-1">
+        <div className="ml-auto label nums hidden md:block">
           {range.from} → {range.to}
         </div>
       </div>
@@ -239,10 +246,10 @@ function CorrelationCard({
     r <= -0.3 ? hintBad :
     'a weak relationship — neither pulls strongly on the other.';
   return (
-    <div className="border-2 border-ink rounded-2xl p-4 bg-tone-soft shadow-pop-sm">
+    <div className="rounded-xl border border-rule p-4 bg-paper/60">
       <div className="label">{label}</div>
       <div className="mt-2 flex items-baseline gap-3">
-        <span className={clsx('font-display font-black text-5xl leading-none nums', tone)}>
+        <span className={clsx('font-display font-normal text-5xl leading-none nums', tone)}>
           {r == null ? '—' : (r > 0 ? '+' : '') + r.toFixed(2)}
         </span>
         <span className="label">pearson r</span>

@@ -75,7 +75,7 @@ export default function WeightCard({ profile, date }: Props) {
               step="0.1"
               min="20"
               max="300"
-              autoFocus
+              autoFocus={editing}
               className="field font-display text-5xl nums w-32"
               placeholder={last ? last.kg.toFixed(1) : '60.0'}
               value={draft}

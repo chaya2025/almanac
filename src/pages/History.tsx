@@ -10,13 +10,13 @@ import Rule from '@/components/Rule';
 const WEEKS = 26; // ~6 months
 
 
-// mood 1..5: coral → tangerine → sunflower → lime → leaf
+// mood 1..5: oxblood → terracotta → ochre → sage → forest
 const MOOD_COLORS = [
-  'rgb(var(--coral))',
-  'rgb(var(--tang))',
-  'rgb(var(--sun))',
-  'rgb(160 214 80)',
-  'rgb(var(--leaf))',
+  'rgb(150 60 52 / 0.85)',
+  'rgb(184 92 56 / 0.75)',
+  'rgb(184 140 52 / 0.7)',
+  'rgb(120 150 100 / 0.8)',
+  'rgb(74 118 82 / 0.9)',
 ];
 
 export default function History() {
@@ -66,8 +66,8 @@ export default function History() {
     <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-10">
       <div className="reveal">
         <div className="label">section iii.</div>
-        <h1 className="font-display font-black text-5xl md:text-7xl mt-1 tracking-tight">
-          <span className="bg-gradient-to-r from-aqua via-leaf to-sun bg-clip-text text-transparent">Days,</span>{' '}<span className="font-display-italic tone-pink marker">past</span>
+        <h1 className="font-display font-normal text-5xl md:text-6xl mt-1 tracking-[-0.02em]">
+          Days, <span className="font-display-italic text-clay-deep">past</span>
         </h1>
         <Rule />
       </div>
@@ -76,13 +76,13 @@ export default function History() {
         <div className="flex items-baseline justify-between mb-3">
           <div className="label">last six months · click any square</div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-ink-mute">
-            <span>low mood</span>
+            <span>low</span>
             <div className="flex gap-0.5">
               {MOOD_COLORS.map((c) => (
-                <div key={c} className="w-3 h-3 rounded-[3px] border border-ink/70" style={{ backgroundColor: c }} />
+                <div key={c} className="w-3 h-3 rounded-[3px]" style={{ backgroundColor: c }} />
               ))}
             </div>
-            <span>great</span>
+            <span>bright</span>
           </div>
         </div>
 
@@ -136,14 +136,14 @@ function Cell({
   cell: { date: string; mood?: number; isToday: boolean; isFuture: boolean };
 }) {
   if (cell.isFuture) return <div className="aspect-square" />;
-  const bg = cell.mood == null ? 'rgb(var(--ink) / 0.05)' : MOOD_COLORS[Math.max(0, Math.min(4, Math.round(cell.mood) - 1))];
+  const bg = cell.mood == null ? 'rgb(var(--paper-2) / 0.7)' : MOOD_COLORS[Math.max(0, Math.min(4, Math.round(cell.mood) - 1))];
   return (
     <Link
       to={`/day/${cell.date}`}
       title={`${format(parseISO(cell.date), 'EEEE d MMM')} · mood ${cell.mood ?? '–'}/5`}
       className={clsx(
-        'aspect-square rounded-[6px] border-[1.5px] transition-all hover:scale-125 hover:-rotate-6 hover:z-10 relative',
-        cell.isToday ? 'border-ink ring-2 ring-ink ring-offset-2 ring-offset-paper' : cell.mood == null ? 'border-transparent hover:border-ink' : 'border-ink/70 hover:border-ink'
+        'aspect-square rounded-[4px] transition-all hover:scale-110 hover:z-10 relative',
+        cell.isToday ? 'ring-2 ring-ink ring-offset-2 ring-offset-paper' : 'hover:ring-1 hover:ring-ink/40'
       )}
       style={{ backgroundColor: bg }}
     />

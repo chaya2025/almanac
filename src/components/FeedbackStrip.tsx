@@ -9,37 +9,32 @@ const areaTone: Record<string, string> = {
   mood: 'tone-pink',
 };
 
-const severityMark: Record<ScoredFeedback['severity'], { glyph: string; cls: string }> = {
-  good: { glyph: '✓', cls: 'bg-moss text-white' },
-  warn: { glyph: '!', cls: 'bg-amber text-ink' },
-  bad: { glyph: '×', cls: 'bg-clay text-white' },
+const severityDot: Record<ScoredFeedback['severity'], string> = {
+  good: 'bg-moss',
+  warn: 'bg-amber',
+  bad: 'bg-clay-deep',
 };
 
 export default function FeedbackStrip({ items }: { items: ScoredFeedback[] }) {
   return (
     <div className="reveal" style={{ animationDelay: '60ms' }}>
-      <div className="label mb-2">today’s reading</div>
-      <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
-        {items.map((f, i) => {
-          const mark = severityMark[f.severity];
-          return (
-            <div
-              key={i}
-              className={clsx(
-                areaTone[f.area] ?? 'tone-sun',
-                'snap-start shrink-0 w-[230px] md:flex-1 md:w-auto md:min-w-[180px] bg-tone-soft border-2 border-ink rounded-2xl px-3 py-2.5 shadow-pop-sm'
-              )}
-            >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[11px] uppercase tracking-[0.16em] font-extrabold">{f.area}</span>
-                <span className={clsx('h-5 w-5 rounded-full border-2 border-ink grid place-items-center text-[11px] font-black leading-none', mark.cls)}>
-                  {mark.glyph}
-                </span>
-              </div>
-              <p className="text-[13px] text-ink-soft leading-snug">{f.message}</p>
+      <div className="label mb-3">today’s reading</div>
+      <div className="grid grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 overflow-x-auto pb-1 snap-x">
+        {items.map((f, i) => (
+          <div
+            key={i}
+            className={clsx(
+              areaTone[f.area] ?? 'tone-ink',
+              'snap-start bg-white/80 border border-rule rounded-xl px-4 py-3 border-l-[3px] border-l-tone'
+            )}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-tone">{f.area}</span>
+              <span className={clsx('h-1.5 w-1.5 rounded-full', severityDot[f.severity])} title={f.severity} />
             </div>
-          );
-        })}
+            <p className="text-[13px] text-ink-soft leading-snug">{f.message}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

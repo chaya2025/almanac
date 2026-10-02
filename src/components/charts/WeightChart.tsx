@@ -45,7 +45,7 @@ export default function WeightChart({
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <defs>
-            <Gradient id="weight-fill" color={palette.sun} from={0.7} to={0.05} />
+            <Gradient id="weight-fill" color={palette.sun} from={0.25} to={0.02} />
           </defs>
           <CartesianGrid {...gridProps} />
           <XAxis
@@ -66,7 +66,7 @@ export default function WeightChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ stroke: palette.tang, strokeWidth: 2, strokeDasharray: '4 4' }}
+            cursor={{ stroke: palette.ink, strokeDasharray: '2 4' }}
             labelFormatter={(d) => format(parseISO(d), 'EEEE, d MMM yyyy')}
             formatter={(v: number, name) => [
               `${v.toFixed(1)} kg`,
@@ -76,19 +76,19 @@ export default function WeightChart({
           <Area
             type="monotone"
             dataKey="kg"
-            stroke={palette.ink}
-            strokeWidth={2.5}
+            stroke={palette.sun}
+            strokeWidth={2}
             fill="url(#weight-fill)"
-            dot={{ stroke: palette.ink, fill: palette.white, strokeWidth: 2, r: 3.5 }}
-            activeDot={{ stroke: palette.ink, fill: palette.sun, strokeWidth: 2, r: 6 }}
+            dot={{ stroke: palette.sun, fill: palette.white, strokeWidth: 1.5, r: 3 }}
+            activeDot={{ stroke: palette.white, fill: palette.sun, strokeWidth: 2, r: 5 }}
             isAnimationActive
           />
           <Line
             type="monotone"
             dataKey="trend"
-            stroke={palette.tang}
-            strokeWidth={3}
-            strokeLinecap="round"
+            stroke={palette.inkSoft}
+            strokeWidth={1.25}
+            strokeDasharray="4 4"
             dot={false}
             isAnimationActive
           />
@@ -97,10 +97,10 @@ export default function WeightChart({
               key={s.date}
               x={s.date}
               y={s.kg}
-              r={5}
-              fill={palette.tang}
-              stroke={palette.ink}
-              strokeWidth={2}
+              r={4}
+              fill={palette.sun}
+              stroke={palette.white}
+              strokeWidth={1.5}
             />
           ))}
         </ComposedChart>
