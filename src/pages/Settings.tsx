@@ -4,7 +4,8 @@ import clsx from 'clsx';
 import { db } from '@/db/schema';
 import Rule from '@/components/Rule';
 import Card from '@/components/Card';
-import { markExported, daysSinceLastExport } from '@/lib/backup';
+import { daysSinceLastExport, exportToFile, parseBackup, describeBackup, restoreBackup } from '@/lib/backup';
+import { isStoragePersistent, requestPersistentStorage } from '@/lib/storage';
 import type { FoodGroup, TimeFormat } from '@/types';
 
 type InstallPromptEvent = Event & {
@@ -41,52 +42,24 @@ export default function Settings() {
   }, []);
 
   const exportAll = async () => {
-    const dump = {
-      version: 3,
-      exportedAt: new Date().toISOString(),
-      profile: await db.profile.toArray(),
-      days: await db.days.toArray(),
-      sleep: await db.sleep.toArray(),
-      meals: await db.meals.toArray(),
-      water: await db.water.toArray(),
-      workouts: await db.workouts.toArray(),
-      weights: await db.weights.toArray(),
-      foodLibrary: await db.foodLibrary.toArray(),
-      savedMeals: await db.savedMeals.toArray(),
-    };
-    const slug = (profile?.name ?? 'almanac').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${slug}-almanac-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    markExported();
+    await exportToFile(profile?.name);
     setLastExportDays(0);
   };
 
   const handleImport = async (file: File) => {
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      // simple validation
-      if (!data.version) throw new Error('Missing version');
-      await db.transaction('rw', [db.profile, db.days, db.sleep, db.meals, db.water, db.workouts, db.weights, db.savedMeals], async () => {
-        if (Array.isArray(data.profile)) await db.profile.bulkPut(data.profile);
-        if (Array.isArray(data.days)) await db.days.bulkPut(data.days);
-        if (Array.isArray(data.sleep)) await db.sleep.bulkPut(data.sleep);
-        if (Array.isArray(data.meals)) await db.meals.bulkPut(data.meals);
-        if (Array.isArray(data.water)) await db.water.bulkPut(data.water);
-        if (Array.isArray(data.workouts)) await db.workouts.bulkPut(data.workouts);
-        if (Array.isArray(data.weights)) await db.weights.bulkPut(data.weights);
-        if (Array.isArray(data.savedMeals)) await db.savedMeals.bulkPut(data.savedMeals);
-      });
-      setImportMsg('Imported successfully.');
+      const backup = parseBackup(await file.text());
+      const ok = confirm(
+        `Restore this backup?\n\nIt has ${describeBackup(backup)}.\n\n` +
+          'Everything currently on this device will be replaced by it. Export first if you want to keep what is here.'
+      );
+      if (!ok) return;
+      await restoreBackup(backup);
+      setImportMsg(`Restored: ${describeBackup(backup)}.`);
     } catch (e) {
       setImportMsg(`Import failed: ${(e as Error).message}`);
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -111,7 +84,10 @@ export default function Settings() {
           {profile ? (
             <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <Row k="name" v={profile.name ?? '—'} />
-              <Row k="height · weight" v={`${profile.heightCm ?? '–'}cm · ${profile.weightKg ?? '–'}kg`} />
+              <Row
+                k="height · weight"
+                v={[profile.heightCm && `${profile.heightCm} cm`, profile.weightKg && `${profile.weightKg} kg`].filter(Boolean).join(' · ') || 'not set'}
+              />
               <Row k="goal" v={profile.goal} />
               <Row k="diet" v={profile.dietStyle} />
               <Row k="activity" v={profile.activityLevel} />
@@ -167,9 +143,11 @@ export default function Settings() {
 
         <Card eyebrow="data" title="Export & import">
           <div className="text-sm text-ink-soft mb-4 leading-relaxed">
-            Your almanac lives only on this device. Back it up regularly — drop the JSON file
-            into iCloud, OneDrive or a folder you trust.
+            Your almanac lives only in this browser, on this device. Nothing is sent anywhere. Back it
+            up regularly and keep the file in iCloud, OneDrive or a folder you trust; the same file
+            moves your data to another device.
           </div>
+          <StorageStatus />
           <div className="label mb-3">
             last backup ·{' '}
             <span className="nums">
@@ -202,7 +180,7 @@ export default function Settings() {
             Removes every entry, profile and food added on this device.
           </p>
           <button
-            className="px-3 py-1.5 text-xs uppercase tracking-[0.18em] border border-clay text-clay-deep hover:bg-clay hover:text-paper transition-colors"
+            className="btn-ghost !text-clay-deep !border-clay-deep/40 hover:!bg-clay-deep hover:!text-white"
             onClick={wipe}
           >
             wipe everything
@@ -335,5 +313,28 @@ function SavedMealsCard() {
         ))}
       </ul>
     </Card>
+  );
+}
+
+function StorageStatus() {
+  const [persistent, setPersistent] = useState<boolean | null>(null);
+  useEffect(() => {
+    isStoragePersistent().then(setPersistent);
+  }, []);
+  if (persistent == null) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+      <span className={clsx('h-2 w-2 rounded-full', persistent ? 'bg-moss' : 'bg-amber')} />
+      <span className="text-ink-soft">
+        {persistent
+          ? 'Protected storage: the browser won’t clear your entries to free up space.'
+          : 'Standard storage: the browser may clear entries if the device runs low on space.'}
+      </span>
+      {!persistent && (
+        <button className="btn-ghost !py-1 !px-2.5 !text-xs" onClick={async () => setPersistent(!!(await requestPersistentStorage()))}>
+          protect
+        </button>
+      )}
+    </div>
   );
 }

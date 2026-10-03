@@ -33,7 +33,7 @@ export default function StreakStrip() {
   );
 
   const items = [
-    { label: 'sleep', count: currentStreak(sleep?.map((s) => s.date) ?? [], today) },
+    { label: 'sleep', count: currentStreak((sleep ?? []).filter((s) => s.hours > 0).map((s) => s.date), today) },
     {
       label: 'meals',
       count: currentStreak(

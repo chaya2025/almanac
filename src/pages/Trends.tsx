@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { format, subDays } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import clsx from 'clsx';
 import { db } from '@/db/schema';
@@ -19,6 +20,8 @@ import {
   aggregateSport,
   aggregateWater,
   pearson,
+  pairCount,
+  MIN_PAIRS,
   rangeForGranularity,
   type Granularity,
 } from '@/lib/aggregate';
@@ -55,6 +58,11 @@ export default function Trends() {
     [range.from, range.to]
   );
   const weights = useLiveQuery(() => db.weights.orderBy('date').toArray(), []);
+  // fixed 30-day window for sleep debt and patterns, independent of the tab
+  const d30 = rangeForGranularity('daily');
+  const last30Sleep = useLiveQuery(() => db.sleep.where('date').between(d30.from, d30.to, true, true).toArray(), [d30.from, d30.to]);
+  const last30Days = useLiveQuery(() => db.days.where('date').between(d30.from, d30.to, true, true).toArray(), [d30.from, d30.to]);
+  const last30Sport = useLiveQuery(() => db.workouts.where('date').between(d30.from, d30.to, true, true).toArray(), [d30.from, d30.to]);
 
   const sleepSeries = useMemo(() => aggregateSleep(sleep ?? [], g), [sleep, g]);
   const mealsSeries = useMemo(() => aggregateMeals(meals ?? [], g), [meals, g]);
@@ -68,26 +76,32 @@ export default function Trends() {
 
   // Sleep debt: last 7 nights, computed from the full sleep set in range
   const last7Sleep = useMemo(() => {
-    if (!sleep) return [];
-    const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return sleep.filter((s) => new Date(s.date).getTime() >= cutoffMs);
-  }, [sleep]);
+    const from = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+    return (last30Sleep ?? []).filter((s) => s.date >= from);
+  }, [last30Sleep]);
   const debt = useMemo(
     () => (profile && last7Sleep.length >= 3 ? sleepDebt(last7Sleep, profile.sleepTargetHours) : null),
     [last7Sleep, profile]
   );
 
+  // Patterns are always read day-by-day over the last 30 days, whatever tab is open:
+  // "next-day energy" only makes sense per day, not per week or month.
+  const dailyMood = useMemo(
+    () => aggregateMoodSleep(last30Days ?? [], last30Sleep ?? [], 'daily'),
+    [last30Days, last30Sleep]
+  );
+  const dailySport = useMemo(() => aggregateSport(last30Sport ?? [], 'daily'), [last30Sport]);
   const corrSleepEnergy = useMemo(() => {
-    const sleepXs = moodSeries.slice(0, -1).map((p) => p.sleepHours);
-    const energyYs = moodSeries.slice(1).map((p) => p.energy);
-    return pearson(sleepXs, energyYs);
-  }, [moodSeries]);
+    const sleepXs = dailyMood.slice(0, -1).map((p) => p.sleepHours);
+    const energyYs = dailyMood.slice(1).map((p) => p.energy);
+    return { r: pearson(sleepXs, energyYs, MIN_PAIRS), n: pairCount(sleepXs, energyYs) };
+  }, [dailyMood]);
   const corrSportEnergy = useMemo(() => {
-    const map = new Map(sportSeries.map((s) => [s.date, s.minutes]));
-    const sportXs = moodSeries.map((m) => map.get(m.date) ?? 0);
-    const energyYs = moodSeries.map((p) => p.energy);
-    return pearson(sportXs, energyYs);
-  }, [sportSeries, moodSeries]);
+    const map = new Map(dailySport.map((s) => [s.date, s.minutes]));
+    const sportXs = dailyMood.map((m) => (m.energy == null ? null : map.get(m.date) ?? 0));
+    const energyYs = dailyMood.map((p) => p.energy);
+    return { r: pearson(sportXs, energyYs, MIN_PAIRS), n: pairCount(sportXs, energyYs) };
+  }, [dailySport, dailyMood]);
 
   if (!profile) return null;
 
@@ -203,17 +217,19 @@ export default function Trends() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CorrelationCard
               label="sleep → next-day energy"
-              r={corrSleepEnergy}
+              r={corrSleepEnergy.r}
+              n={corrSleepEnergy.n}
               hintGood="more sleep tends to lift the next day's energy"
               hintBad="energy doesn't track sleep here — look at meals or stress"
-              hintNone="not enough overlapping days yet — log a few more"
+              hintNone="needs 10 days with both sleep and next-day energy logged"
             />
             <CorrelationCard
               label="sport ↔ energy"
-              r={corrSportEnergy}
+              r={corrSportEnergy.r}
+              n={corrSportEnergy.n}
               hintGood="active days tend to be higher-energy days"
               hintBad="energy lags after sport here — consider rest"
-              hintNone="log a few more sport days alongside mood"
+              hintNone="needs 10 days with energy logged"
             />
           </div>
         </Card>
@@ -225,12 +241,14 @@ export default function Trends() {
 function CorrelationCard({
   label,
   r,
+  n,
   hintGood,
   hintBad,
   hintNone,
 }: {
   label: string;
   r: number | null;
+  n: number;
   hintGood: string;
   hintBad: string;
   hintNone: string;
@@ -252,7 +270,7 @@ function CorrelationCard({
         <span className={clsx('font-display font-normal text-5xl leading-none nums', tone)}>
           {r == null ? '—' : (r > 0 ? '+' : '') + r.toFixed(2)}
         </span>
-        <span className="label">pearson r</span>
+        <span className="label">correlation · {n} days</span>
       </div>
       <p className="text-sm text-ink-soft mt-2 leading-relaxed">{hint}</p>
     </div>

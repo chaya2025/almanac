@@ -12,6 +12,11 @@ import type {
 
 /* ---------- Sleep ---------- */
 
+/** Nights with actual hours. 0h rows are leftovers from a half-filled form and mean "not logged". */
+export function realNights<T extends { hours: number }>(rows: T[]): T[] {
+  return rows.filter((r) => r.hours > 0);
+}
+
 export function scoreSleep(hours: number | undefined, target: number): number {
   if (hours == null) return 0;
   const delta = Math.abs(hours - target);
@@ -25,8 +30,9 @@ export function scoreSleep(hours: number | undefined, target: number): number {
  * Caller decides the window (e.g. last 7 days).
  */
 export function sleepDebt(sleeps: SleepEntry[], targetHours: number): number {
-  if (!sleeps.length) return 0;
-  const sum = sleeps.reduce((s, x) => s + (x.hours - targetHours), 0);
+  const real = realNights(sleeps);
+  if (!real.length) return 0;
+  const sum = real.reduce((s, x) => s + (x.hours - targetHours), 0);
   return Math.round(sum * 10) / 10;
 }
 

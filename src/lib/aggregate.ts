@@ -21,7 +21,7 @@ import type {
   WorkoutEntry,
 } from '@/types';
 import { MEAL_SLOTS } from '@/types';
-import { scoreMealsForDay, scoreSleep, scoreWater } from '@/lib/scoring';
+import { scoreMealsForDay, scoreSleep, scoreWater, realNights } from '@/lib/scoring';
 
 export type Granularity = 'daily' | 'weekly' | 'monthly';
 
@@ -77,7 +77,7 @@ export function aggregateSleep(
   const buckets = bucketDates(g);
   const hoursMap = new Map<string, number[]>();
   const bedtimeMap = new Map<string, number[]>();
-  rows.forEach((r) => {
+  realNights(rows).forEach((r) => {
     const k = bucketKey(r.date, g);
     if (!hoursMap.has(k)) hoursMap.set(k, []);
     hoursMap.get(k)!.push(r.hours);
@@ -206,7 +206,7 @@ export function aggregateMoodSleep(
     if (d.mood != null) slot.mood.push(d.mood);
     if (d.energy != null) slot.energy.push(d.energy);
   });
-  sleeps.forEach((s) => {
+  realNights(sleeps).forEach((s) => {
     ensure(bucketKey(s.date, g)).sleep.push(s.hours);
   });
   return buckets.map((b) => {
@@ -221,11 +221,22 @@ export function aggregateMoodSleep(
 }
 
 /* ---------- Stats ---------- */
-export function pearson(xs: (number | null)[], ys: (number | null)[]): number | null {
-  const pairs = xs
+/** Fewer paired days than this and a correlation is mostly noise. */
+export const MIN_PAIRS = 10;
+
+function pairsOf(xs: (number | null)[], ys: (number | null)[]): [number, number][] {
+  return xs
     .map((x, i) => [x, ys[i]] as [number | null, number | null])
     .filter(([x, y]) => x != null && y != null) as [number, number][];
-  if (pairs.length < 4) return null;
+}
+
+export function pairCount(xs: (number | null)[], ys: (number | null)[]): number {
+  return pairsOf(xs, ys).length;
+}
+
+export function pearson(xs: (number | null)[], ys: (number | null)[], minPairs = 4): number | null {
+  const pairs = pairsOf(xs, ys);
+  if (pairs.length < minPairs) return null;
   const meanX = avg(pairs.map((p) => p[0]));
   const meanY = avg(pairs.map((p) => p[1]));
   let num = 0;
@@ -265,8 +276,9 @@ export async function summarizeWeek(weekKey: string, profile: Profile): Promise<
   ]);
 
   // sleep
-  const sleepNights = sleeps.length;
-  const sleepAvg = sleepNights ? round1(avg(sleeps.map((s) => s.hours))) : null;
+  const nights = realNights(sleeps);
+  const sleepNights = nights.length;
+  const sleepAvg = sleepNights ? round1(avg(nights.map((s) => s.hours))) : null;
 
   // water
   const waterByDay = new Map<string, number>();
@@ -315,7 +327,7 @@ export async function summarizeWeek(weekKey: string, profile: Profile): Promise<
   let bestDayKey: string | null = null;
   let bestDayScore: number | null = null;
   for (const date of dates) {
-    const s = sleeps.find((x) => x.date === date);
+    const s = nights.find((x) => x.date === date);
     const mealsOnDay = meals.filter((x) => x.date === date);
     const waterOnDay = waterByDay.get(date) ?? 0;
     const score =

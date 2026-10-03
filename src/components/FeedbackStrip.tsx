@@ -15,10 +15,10 @@ const severityDot: Record<ScoredFeedback['severity'], string> = {
   bad: 'bg-clay-deep',
 };
 
-export default function FeedbackStrip({ items }: { items: ScoredFeedback[] }) {
+export default function FeedbackStrip({ items, label = 'today’s reading' }: { items: ScoredFeedback[]; label?: string }) {
   return (
     <div className="reveal" style={{ animationDelay: '60ms' }}>
-      <div className="label mb-3">today’s reading</div>
+      <div className="label mb-3">{label}</div>
       <div className="grid grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 overflow-x-auto pb-1 snap-x">
         {items.map((f, i) => (
           <div

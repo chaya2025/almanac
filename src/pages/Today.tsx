@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format, parseISO, getDay, subDays } from 'date-fns';
 import clsx from 'clsx';
 import { db } from '@/db/schema';
-import { todayKey, weekKeysFor, prettyLongDate, ordinal, hoursBetween, isWrapMidnight } from '@/lib/dates';
+import { weekKeysFor, prettyLongDate, ordinal, hoursBetween, isWrapMidnight } from '@/lib/dates';
+import { useTodayKey } from '@/lib/useTodayKey';
 import {
   sleepFeedback,
   waterFeedback,
@@ -34,13 +35,21 @@ import ExportBanner from '@/components/ExportBanner';
 import StreakStrip from '@/components/StreakStrip';
 import WeeklyDigest from '@/components/WeeklyDigest';
 
-export default function Today() {
-  const date = todayKey();
+/**
+ * The day sheet. With no `date` it is the Today page (masthead, digest, streaks).
+ * With a `date` it is embedded in DayView so any past day can be filled in.
+ */
+export default function Today({ date: dateProp }: { date?: string } = {}) {
+  const liveToday = useTodayKey();
+  const date = dateProp ?? liveToday;
+  const embedded = dateProp != null;
   const weekKeys = weekKeysFor(date);
 
   // Live data
   const profile = useLiveQuery(() => db.profile.get('me'), []);
-  const day = useLiveQuery(() => db.days.get(date), [date]);
+  // null = no entry yet, undefined = still loading (the journal waits for this)
+  const dayRow = useLiveQuery(() => db.days.get(date).then((d) => d ?? null), [date]);
+  const day = dayRow ?? undefined;
   const sleep = useLiveQuery(
     () => db.sleep.where('date').equals(date).last(),
     [date]
@@ -85,7 +94,8 @@ export default function Today() {
   const feedback: ScoredFeedback[] = useMemo(() => {
     if (!profile) return [];
     const items: ScoredFeedback[] = [];
-    items.push({ area: 'sleep', ...sleepFeedback(sleep?.hours, profile.sleepTargetHours) });
+    const nightHours = sleep?.hours || undefined; // 0h = not logged
+    items.push({ area: 'sleep', ...sleepFeedback(nightHours, profile.sleepTargetHours) });
     items.push({ area: 'meals', ...mealsFeedback(meals ?? [], profile.dietStyle) });
     items.push({ area: 'water', ...waterFeedback(waterMl, profile.waterTargetMl) });
 
@@ -96,20 +106,26 @@ export default function Today() {
       area: 'sport',
       ...sportFeedback(workoutsWeek ?? [], profile, weekFrac),
     });
-    items.push({ area: 'mood', ...moodFeedback(day?.mood, day?.energy, sleep?.hours) });
+    items.push({ area: 'mood', ...moodFeedback(day?.mood, day?.energy, nightHours) });
+    // the scoring messages are written for today; on a past day drop the "today"
+    if (embedded) items.forEach((f) => (f.message = f.message.replace(/ (yet )?today/g, '')));
     return items;
-  }, [sleep, meals, waterMl, workoutsWeek, day, profile, date]);
+  }, [sleep, meals, waterMl, workoutsWeek, day, profile, date, embedded]);
 
   if (!profile) return null; // will redirect via App
 
   return (
-    <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-8">
-      <ExportBanner />
-      <WeeklyDigest profile={profile} />
-      <Greeting name={profile.name} />
-      <Masthead date={date} />
-      <StreakStrip />
-      <FeedbackStrip items={feedback} />
+    <div className={embedded ? '' : 'max-w-[1280px] mx-auto px-6 md:px-10 py-8'}>
+      {!embedded && (
+        <>
+          <ExportBanner />
+          <WeeklyDigest profile={profile} />
+          <Greeting name={profile.name} />
+          <Masthead date={date} />
+          <StreakStrip />
+        </>
+      )}
+      <FeedbackStrip items={feedback} label={embedded ? 'the day’s reading' : undefined} />
 
       <div className="grid grid-cols-12 gap-5 mt-8">
         {/* SLEEP */}
@@ -126,7 +142,7 @@ export default function Today() {
         {/* MEALS */}
         <Card
           eyebrow="ii. the table"
-          title="Today’s Plate"
+          title={embedded ? 'The Plate' : 'Today’s Plate'}
           className="col-span-12 md:col-span-5 row-span-2"
           style={{ animationDelay: '120ms' }}
           image="/images/table.webp"
@@ -206,15 +222,7 @@ export default function Today() {
         image="/images/journal.webp"
         imagePosition="50% 40%"
       >
-        <textarea
-          className="w-full bg-transparent outline-none font-serif text-lg leading-[1.7] text-ink min-h-[180px] dropcap resize-none"
-          style={{ fontVariationSettings: "'opsz' 24, 'SOFT' 50" }}
-          placeholder="Today I noticed…"
-          defaultValue={day?.journal ?? ''}
-          onBlur={async (e) => {
-            await upsertDay(date, { journal: e.target.value });
-          }}
-        />
+        {dayRow !== undefined && <JournalField key={date} date={date} initial={dayRow?.journal ?? ''} />}
       </Card>
     </div>
   );
@@ -284,9 +292,14 @@ function SleepBlock({
   const diff = hours ? hours - target : 0;
   const wraps = isWrapMidnight(bedtime, wakeTime);
 
+  // Only write once both times are in; a lone bedtime used to save as a 0h night.
   const commit = (nextBed: string, nextWake: string, nextQ: number) => {
-    const h = hoursBetween(nextBed, nextWake) ?? 0;
-    upsertSleep(date, { hours: h, quality: nextQ, bedtime: nextBed || undefined, wakeTime: nextWake || undefined });
+    const h = hoursBetween(nextBed, nextWake);
+    if (h == null) {
+      if (sleep) upsertSleep(date, { hours: sleep.hours, quality: nextQ, bedtime: sleep.bedtime, wakeTime: sleep.wakeTime });
+      return;
+    }
+    upsertSleep(date, { hours: h, quality: nextQ, bedtime: nextBed, wakeTime: nextWake });
   };
 
   return (
@@ -631,9 +644,6 @@ async function upsertDay(date: string, patch: Partial<{ mood: number; energy: nu
   } else {
     await db.days.add({
       date,
-      mood: 3,
-      energy: 3,
-      stress: 3,
       journal: '',
       ...patch,
       createdAt: now,
@@ -649,4 +659,28 @@ function timeOfDayLine() {
   if (h < 17) return 'Keep the thread.';
   if (h < 21) return 'Ease into evening.';
   return 'Close the day gently.';
+}
+
+function JournalField({ date, initial }: { date: string; initial: string }) {
+  const [text, setText] = useState(initial);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const save = (v: string) => {
+    clearTimeout(timer.current);
+    upsertDay(date, { journal: v });
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <textarea
+      className="w-full bg-transparent outline-none font-serif text-lg leading-[1.7] text-ink min-h-[180px] dropcap resize-none"
+      placeholder="Today I noticed…"
+      value={text}
+      onChange={(e) => {
+        const v = e.target.value;
+        setText(v);
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => save(v), 700);
+      }}
+      onBlur={(e) => save(e.target.value)}
+    />
+  );
 }

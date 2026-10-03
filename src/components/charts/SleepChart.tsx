@@ -26,7 +26,6 @@ export default function SleepChart({
   granularity: 'daily' | 'weekly' | 'monthly';
 }) {
   const empty = !data.some((d) => d.hours != null);
-  const hasBedtime = data.filter((d) => d.bedtimeH != null).length >= 3;
   return (
     <ChartFrame height={height} empty={empty}>
       <ResponsiveContainer width="100%" height="100%">
@@ -88,18 +87,6 @@ export default function SleepChart({
               fill="none"
               dot={false}
               isAnimationActive
-            />
-          )}
-          {hasBedtime && (
-            <Line
-              type="monotone"
-              dataKey="bedtimeH"
-              stroke={palette.leaf}
-              strokeWidth={1.25}
-              strokeDasharray="2 3"
-              dot={false}
-              isAnimationActive
-              connectNulls
             />
           )}
         </ComposedChart>
