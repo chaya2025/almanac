@@ -664,11 +664,24 @@ function timeOfDayLine() {
 function JournalField({ date, initial }: { date: string; initial: string }) {
   const [text, setText] = useState(initial);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const pending = useRef<string | null>(null);
   const save = (v: string) => {
     clearTimeout(timer.current);
+    pending.current = null;
     upsertDay(date, { journal: v });
   };
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // flush unsaved typing when leaving the page or hiding the tab
+  useEffect(() => {
+    const flush = () => pending.current != null && save(pending.current);
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      flush();
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
   return (
     <textarea
       className="w-full bg-transparent outline-none font-serif text-lg leading-[1.7] text-ink min-h-[180px] dropcap resize-none"
@@ -677,6 +690,7 @@ function JournalField({ date, initial }: { date: string; initial: string }) {
       onChange={(e) => {
         const v = e.target.value;
         setText(v);
+        pending.current = v;
         clearTimeout(timer.current);
         timer.current = setTimeout(() => save(v), 700);
       }}
