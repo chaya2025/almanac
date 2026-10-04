@@ -10,6 +10,8 @@ import type { FoodGroup, TimeFormat } from '@/types';
 import { GROUP_LABEL } from '@/types';
 import { DayPicker } from '@/pages/Onboarding';
 import { weighInDay } from '@/lib/weight';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { backupNow, chooseFolder, forgetFolder, KEEP_DAYS, resumeBackup, saveBeforeRestore, useBackupStatus } from '@/lib/autobackup';
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -49,14 +51,21 @@ export default function Settings() {
     setLastExportDays(0);
   };
 
+  const backupStatus = useBackupStatus();
+
   const handleImport = async (file: File) => {
     try {
       const backup = parseBackup(await file.text());
+      const autoOn = backupStatus.folder != null && backupStatus.permission === 'granted' && !backupStatus.error;
       const ok = confirm(
         `Restore this backup?\n\nIt has ${describeBackup(backup)}.\n\n` +
-          'Everything currently on this device will be replaced by it. Export first if you want to keep what is here.'
+          'Everything currently on this device will be replaced by it. ' +
+          (autoOn
+            ? 'A copy of what is here now is saved to your backup folder first.'
+            : 'Download a copy first if you want to keep what is here.')
       );
       if (!ok) return;
+      if (autoOn) await saveBeforeRestore();
       await restoreBackup(backup);
       setImportMsg(`Restored: ${describeBackup(backup)}.`);
     } catch (e) {
@@ -68,6 +77,8 @@ export default function Settings() {
 
   const wipe = async () => {
     if (!confirm('Delete EVERYTHING in your almanac? This cannot be undone.')) return;
+    // stop auto-backup first so a fresh almanac never overwrites the old backups
+    await forgetFolder();
     await db.delete();
     location.reload();
   };
@@ -155,43 +166,55 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card eyebrow="data" title="Export & import">
-          <div className="text-sm text-ink-soft mb-4 leading-relaxed">
-            Your almanac lives only in this browser, on this device. Nothing is sent anywhere. Back it
-            up regularly and keep the file in iCloud, OneDrive or a folder you trust; the same file
-            moves your data to another device.
+        <Card eyebrow="data" title="Backup">
+          <AutoBackupStatus
+            fallback={
+              <>
+                <div className="text-sm text-ink-soft mb-4 leading-relaxed">
+                  Your almanac lives only in this browser, on this device. Nothing is sent anywhere.
+                  Automatic backup needs Chrome or Edge on a computer; here, download a copy now and
+                  then and keep it in OneDrive, iCloud or a folder you trust.
+                </div>
+                <div className="label mb-3">
+                  last backup ·{' '}
+                  <span className="nums">
+                    {lastExportDays == null
+                      ? 'never'
+                      : lastExportDays === 0
+                        ? 'today'
+                        : `${lastExportDays} day${lastExportDays === 1 ? '' : 's'} ago`}
+                  </span>
+                </div>
+                <button className="btn-ink" onClick={exportAll}>download a copy</button>
+              </>
+            }
+          />
+          <div className="mt-6 border-t border-rule pt-4">
+            <StorageStatus />
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="label">restore</span>
+              <button className="btn-ghost !py-1 !px-3 !text-xs" onClick={() => fileRef.current?.click()}>
+                from a backup file
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImport(f);
+                }}
+              />
+            </div>
+            {importMsg && <div className="mt-3 text-sm text-ink-soft">{importMsg}</div>}
           </div>
-          <StorageStatus />
-          <div className="label mb-3">
-            last backup ·{' '}
-            <span className="nums">
-              {lastExportDays == null
-                ? 'never'
-                : lastExportDays === 0
-                  ? 'today'
-                  : `${lastExportDays} day${lastExportDays === 1 ? '' : 's'} ago`}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button className="btn-ink" onClick={exportAll}>export json</button>
-            <button className="btn-ghost" onClick={() => fileRef.current?.click()}>import json</button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImport(f);
-              }}
-            />
-          </div>
-          {importMsg && <div className="mt-3 text-sm text-ink-soft">{importMsg}</div>}
         </Card>
 
         <Card eyebrow="danger" title="Erase the almanac">
           <p className="text-sm text-ink-soft mb-4">
-            Removes every entry, profile and food added on this device.
+            Removes every entry, profile and food added on this device. Files already in your
+            backup folder stay there.
           </p>
           <button
             className="btn-ghost !text-clay-deep !border-clay-deep/40 hover:!bg-clay-deep hover:!text-white"
@@ -350,5 +373,64 @@ function StorageStatus() {
         </button>
       )}
     </div>
+  );
+}
+
+function AutoBackupStatus({ fallback }: { fallback: React.ReactNode }) {
+  const s = useBackupStatus();
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 30_000); // keep "x min ago" fresh
+    return () => clearInterval(t);
+  }, []);
+
+  if (!s.supported) return <>{fallback}</>;
+
+  if (!s.folder) {
+    return (
+      <>
+        <p className="text-sm text-ink-soft mb-4 leading-relaxed">
+          Pick a folder once and the almanac saves itself there a few seconds after every change.
+          Choose a folder inside OneDrive and your backup is online too. One file per day, the
+          newest {KEEP_DAYS} are kept.
+        </p>
+        <button className="btn-ink" onClick={() => void chooseFolder()}>choose backup folder</button>
+        {s.error && <div className="mt-3 text-sm text-clay-deep">{s.error}</div>}
+      </>
+    );
+  }
+
+  const paused = s.permission !== 'granted' || !!s.error;
+  const ago = s.lastAt
+    ? `${paused ? 'last backup' : 'backed up'} ${formatDistanceToNowStrict(s.lastAt, { addSuffix: true })}`
+    : 'not backed up yet';
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className={clsx('h-2 w-2 rounded-full', paused ? 'bg-amber' : 'bg-moss')} />
+        <span className="text-ink">
+          {paused ? 'Auto-backup paused' : 'Auto-backup on'} · saving to{' '}
+          <span className="font-display">“{s.folder}”</span>
+        </span>
+        <span className="label nums" data-testid="backup-ago">{s.saving ? 'saving…' : ago}</span>
+      </div>
+      {s.error ? (
+        <div className="mt-2 text-sm text-clay-deep">{s.error}</div>
+      ) : (
+        paused && (
+          <div className="mt-2 text-sm text-ink-soft">The browser needs your OK to keep saving to this folder.</div>
+        )
+      )}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {s.permission !== 'granted' && !s.error ? (
+          <button className="btn-ink" onClick={() => void resumeBackup()}>resume</button>
+        ) : (
+          <button className="btn-ink" onClick={() => void backupNow()} disabled={s.saving || !!s.error}>back up now</button>
+        )}
+        <button className="btn-ghost" onClick={() => void chooseFolder()}>change folder</button>
+      </div>
+      <p className="mt-3 text-xs text-ink-mute">One file per day, the newest {KEEP_DAYS} are kept.</p>
+    </>
   );
 }

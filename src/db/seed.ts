@@ -62,8 +62,11 @@ const SEED: Omit<FoodLibraryEntry, 'id'>[] = [
   { name: 'Soda', group: 'drink', tags: ['sweet'], kcalPer100: 41 },
 ];
 
+// Check and add in one transaction, so two calls at once (React dev mode runs
+// startup twice) can't both see an empty table and add the list twice.
 export async function seedFoodLibrary() {
-  const count = await db.foodLibrary.count();
-  if (count > 0) return;
-  await db.foodLibrary.bulkAdd(SEED);
+  await db.transaction('rw', db.foodLibrary, async () => {
+    if ((await db.foodLibrary.count()) > 0) return;
+    await db.foodLibrary.bulkAdd(SEED);
+  });
 }

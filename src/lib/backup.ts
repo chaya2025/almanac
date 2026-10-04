@@ -29,12 +29,10 @@ export function daysSinceLastExport(): number | null {
   return Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
 }
 
-/**
- * Build the export payload and trigger a download.
- * Returns the filename used. Updates lastExportAt on success.
- */
-export async function exportToFile(name?: string): Promise<string> {
-  const dump = {
+/** Everything in the almanac, in the backup file format. One read transaction so tables agree. */
+export async function buildBackup() {
+  const tables = [db.profile, db.days, db.sleep, db.meals, db.water, db.workouts, db.weights, db.foodLibrary, db.savedMeals];
+  return db.transaction('r', tables, async () => ({
     version: 3,
     exportedAt: new Date().toISOString(),
     profile: await db.profile.toArray(),
@@ -46,7 +44,15 @@ export async function exportToFile(name?: string): Promise<string> {
     weights: await db.weights.toArray(),
     foodLibrary: await db.foodLibrary.toArray(),
     savedMeals: await db.savedMeals.toArray(),
-  };
+  }));
+}
+
+/**
+ * Build the export payload and trigger a download.
+ * Returns the filename used. Updates lastExportAt on success.
+ */
+export async function exportToFile(name?: string): Promise<string> {
+  const dump = await buildBackup();
   const slug = (name ?? 'almanac').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'almanac';
   const filename = `${slug}-almanac-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });

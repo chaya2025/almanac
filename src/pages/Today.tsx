@@ -31,7 +31,7 @@ import WeekBar from '@/components/WeekBar';
 import Rule from '@/components/Rule';
 import Greeting from '@/components/Greeting';
 import WeightCard from '@/components/WeightCard';
-import ExportBanner from '@/components/ExportBanner';
+import BackupNotice from '@/components/BackupNotice';
 import StreakStrip from '@/components/StreakStrip';
 import WeeklyDigest from '@/components/WeeklyDigest';
 
@@ -118,7 +118,7 @@ export default function Today({ date: dateProp }: { date?: string } = {}) {
     <div className={embedded ? '' : 'max-w-[1280px] mx-auto px-6 md:px-10 py-8'}>
       {!embedded && (
         <>
-          <ExportBanner />
+          <BackupNotice />
           <WeeklyDigest profile={profile} />
           <Greeting name={profile.name} />
           <Masthead date={date} />

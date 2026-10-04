@@ -17,3 +17,5 @@ dist-ssr
 
 # personal data exports, never commit (public repo)
 *-almanac-*.json
+almanac-backup-*.json
+almanac-before-restore-*.json

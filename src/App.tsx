@@ -10,6 +10,7 @@ import DayView from './pages/DayView';
 import { db } from './db/schema';
 import { seedFoodLibrary } from './db/seed';
 import { requestPersistentStorage } from './lib/storage';
+import { initAutoBackup } from './lib/autobackup';
 
 // Trends carries the charting library (most of the bundle), so it loads on first visit
 const Trends = lazy(() => import('./pages/Trends'));
@@ -24,6 +25,7 @@ export default function App() {
         await db.open();
         await seedFoodLibrary();
         void requestPersistentStorage();
+        void initAutoBackup();
         setReady(true);
       } catch (e) {
         setError((e as Error).message || 'unknown error');
