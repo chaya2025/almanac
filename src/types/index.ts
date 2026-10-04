@@ -10,6 +10,18 @@ export type FoodGroup =
   | 'sweet'
   | 'drink';
 
+// what people see; the stored keys stay the same so old data and backups still work
+export const GROUP_LABEL: Record<FoodGroup, string> = {
+  protein: 'protein',
+  veg: 'veg',
+  fruit: 'fruit',
+  grain: 'carbs',
+  dairy: 'dairy',
+  fat: 'fats & nuts',
+  sweet: 'sweets & baked',
+  drink: 'drinks',
+};
+
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack1' | 'snack2';
 
 export const MEAL_SLOTS: MealSlot[] = [

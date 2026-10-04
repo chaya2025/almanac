@@ -11,6 +11,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import ChartFrame, { axisStyle, palette, tooltipStyle, gridProps, xAxisLine } from './ChartFrame';
 import type { FoodGroup } from '@/types';
+import { GROUP_LABEL } from '@/types';
 
 type Stack = { date: string } & Partial<Record<FoodGroup, number>>;
 
@@ -78,6 +79,7 @@ export default function MealsChart({
             <Bar
               key={g}
               dataKey={g}
+              name={GROUP_LABEL[g]}
               stackId="a"
               fill={GROUP_COLORS[g]}
               maxBarSize={22}

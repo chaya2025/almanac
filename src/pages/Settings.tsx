@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import { daysSinceLastExport, exportToFile, parseBackup, describeBackup, restoreBackup } from '@/lib/backup';
 import { isStoragePersistent, requestPersistentStorage } from '@/lib/storage';
 import type { FoodGroup, TimeFormat } from '@/types';
+import { GROUP_LABEL } from '@/types';
 import { DayPicker } from '@/pages/Onboarding';
 import { weighInDay } from '@/lib/weight';
 
@@ -270,7 +271,7 @@ function UserFoodsCard() {
                 className="text-[11px] uppercase tracking-[0.15em] border border-rule bg-paper px-2 py-1"
               >
                 {ALL_GROUPS_FOR_SETTINGS.map((g) => (
-                  <option key={g} value={g}>{g}</option>
+                  <option key={g} value={g}>{GROUP_LABEL[g]}</option>
                 ))}
               </select>
               <button

@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import clsx from 'clsx';
 import { db } from '@/db/schema';
 import type { MealEntry, MealItem, FoodGroup, FoodLibraryEntry } from '@/types';
+import { GROUP_LABEL } from '@/types';
 
 type Props = {
   label: string;
@@ -209,7 +210,7 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
                   </span>
                   <span className="text-sm">{f.name}</span>
                 </span>
-                <span className="label">{f.group}</span>
+                <span className="label">{GROUP_LABEL[f.group]}</span>
               </button>
             ))}
             {query.trim() && !exactMatch && (
@@ -228,7 +229,7 @@ export default function MealRow({ label, meal, library, score, onChange }: Props
                           groupClass[g]
                         )}
                       >
-                        {g}
+                        {GROUP_LABEL[g]}
                       </button>
                     ))}
                   </div>
