@@ -7,6 +7,8 @@ import Card from '@/components/Card';
 import { daysSinceLastExport, exportToFile, parseBackup, describeBackup, restoreBackup } from '@/lib/backup';
 import { isStoragePersistent, requestPersistentStorage } from '@/lib/storage';
 import type { FoodGroup, TimeFormat } from '@/types';
+import { DayPicker } from '@/pages/Onboarding';
+import { weighInDay } from '@/lib/weight';
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -97,6 +99,17 @@ export default function Settings() {
             </dl>
           ) : (
             <span className="label">no profile yet</span>
+          )}
+          {profile && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="label">weigh-in day</span>
+              <DayPicker
+                value={weighInDay(profile)}
+                onChange={async (d) => {
+                  await db.profile.update('me', { weighInDay: d, updatedAt: Date.now() });
+                }}
+              />
+            </div>
           )}
           <div className="mt-4 flex items-center gap-3">
             <a href="/onboarding" className="btn-ghost">re-take quiz</a>

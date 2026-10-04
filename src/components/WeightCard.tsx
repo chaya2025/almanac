@@ -8,8 +8,11 @@ import {
   delta,
   daysSinceLast,
   fmtKg,
-  isSunday,
+  isWeighInDay,
   latest,
+  nextWeighInLabel,
+  weighInDay,
+  WEEKDAYS,
 } from '@/lib/weight';
 import type { Profile } from '@/types';
 import Card from './Card';
@@ -24,12 +27,13 @@ export default function WeightCard({ profile, date }: Props) {
   const [draft, setDraft] = useState<string>('');
   const [editing, setEditing] = useState(false);
 
-  const sundayToday = isSunday(date);
+  const day = weighInDay(profile);
+  const weighInToday = isWeighInDay(day, date);
   const last = latest(weights ?? []);
   const change = delta(weights ?? []);
   const since = daysSinceLast(weights ?? []);
   const todayEntry = (weights ?? []).find((w) => w.date === date);
-  const showWeighIn = sundayToday && !todayEntry;
+  const showWeighIn = weighInToday && !todayEntry;
   const b = bmi(last?.kg, profile.heightCm);
   const band = bmiBand(b);
 
@@ -46,7 +50,7 @@ export default function WeightCard({ profile, date }: Props) {
     setEditing(false);
   };
 
-  const eyebrow = showWeighIn ? '★ sunday weigh-in' : 'vii. weight';
+  const eyebrow = showWeighIn ? `★ ${WEEKDAYS[day].toLowerCase()} weigh-in` : 'vii. weight';
   const title = showWeighIn ? 'Step on the scale' : 'The Scale';
 
   return (
@@ -99,7 +103,7 @@ export default function WeightCard({ profile, date }: Props) {
           </div>
           <p className="text-xs text-ink-soft leading-relaxed">
             {showWeighIn
-              ? 'It’s Sunday — your weekly weigh-in. Same scale, same time of day if you can.'
+              ? `It’s ${WEEKDAYS[day]}, your weekly weigh-in. Same scale, same time of day if you can.`
               : 'Add today’s weight. The chart will pick it up immediately.'}
           </p>
           {last && (
@@ -150,7 +154,7 @@ export default function WeightCard({ profile, date }: Props) {
           )}
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-ink-mute">
-              next weigh-in: <span className="text-ink-soft">{nextSundayLabel(date)}</span>
+              next weigh-in: <span className="text-ink-soft">{nextWeighInLabel(day, date)}</span>
             </span>
             <button className="btn-ghost" onClick={() => setEditing(true)}>
               re-log
@@ -162,10 +166,3 @@ export default function WeightCard({ profile, date }: Props) {
   );
 }
 
-function nextSundayLabel(date: string): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  if (day === 0) return 'today';
-  const diff = 7 - day;
-  return diff === 1 ? 'tomorrow' : `in ${diff} days`;
-}

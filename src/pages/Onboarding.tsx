@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/db/schema';
 import type { ActivityLevel, DietStyle, HealthGoal, Profile } from '@/types';
 import Rule from '@/components/Rule';
+import { DEFAULT_WEIGH_IN_DAY, WEEKDAYS } from '@/lib/weight';
 import clsx from 'clsx';
 
 type Step =
@@ -20,7 +21,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const nav = useNavigate();
   const [step, setStep] = useState<Step>('welcome');
   const [draft, setDraft] = useState<Partial<Profile>>({
-    name: 'Chayala',
+    name: '',
     heightCm: 165,
     weightKg: 60,
     goal: 'wellbeing',
@@ -32,7 +33,15 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     sportMinutesPerSession: 45,
     avoid: [],
     timeFormat: '24h',
+    weighInDay: DEFAULT_WEIGH_IN_DAY,
   });
+
+  // re-taking the quiz starts from your current answers, not the defaults
+  useEffect(() => {
+    db.profile.get('me').then((p) => {
+      if (p) setDraft((d) => ({ ...d, ...p }));
+    });
+  }, []);
 
   const idx = ORDER.indexOf(step);
   const total = ORDER.length;
@@ -44,7 +53,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     const now = Date.now();
     const profile: Profile = {
       id: 'me',
-      name: draft.name?.trim() || 'Chayala',
+      name: draft.name?.trim() || undefined,
       heightCm: draft.heightCm,
       weightKg: draft.weightKg,
       goal: draft.goal ?? 'wellbeing',
@@ -56,7 +65,8 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
       sportMinutesPerSession: draft.sportMinutesPerSession ?? 45,
       avoid: draft.avoid ?? [],
       timeFormat: draft.timeFormat ?? '24h',
-      createdAt: now,
+      weighInDay: draft.weighInDay ?? DEFAULT_WEIGH_IN_DAY,
+      createdAt: draft.createdAt ?? now,
       updatedAt: now,
     };
     await db.profile.put(profile);
@@ -153,6 +163,13 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                     step={0.5}
                     value={draft.weightKg ?? 60}
                     onChange={(v) => setDraft({ ...draft, weightKg: v })}
+                  />
+                </div>
+                <div>
+                  <div className="label mb-2">weekly weigh-in day</div>
+                  <DayPicker
+                    value={draft.weighInDay ?? DEFAULT_WEIGH_IN_DAY}
+                    onChange={(d) => setDraft({ ...draft, weighInDay: d })}
                   />
                 </div>
                 <p className="text-xs text-ink-mute leading-relaxed border-t border-rule pt-3">
@@ -285,6 +302,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
               <dl className="grid grid-cols-2 gap-x-10 gap-y-3 max-w-xl">
                 <Summary k="name" v={draft.name?.trim() || '—'} />
                 <Summary k="height · weight" v={`${draft.heightCm ?? '–'}cm · ${draft.weightKg ?? '–'}kg`} />
+                <Summary k="weigh-in" v={WEEKDAYS[draft.weighInDay ?? DEFAULT_WEIGH_IN_DAY]} />
                 <Summary k="goal" v={draft.goal!} />
                 <Summary k="diet" v={draft.dietStyle!.replace('-', ' ')} />
                 <Summary k="activity" v={draft.activityLevel!.replace('-', ' ')} />
@@ -412,5 +430,25 @@ function Summary({ k, v }: { k: string; v: string }) {
       <dt className="label self-center">{k}</dt>
       <dd className="font-display text-lg text-ink">{v}</dd>
     </>
+  );
+}
+
+export function DayPicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
+  return (
+    <div className="inline-flex flex-wrap border border-rule rounded-sm overflow-hidden">
+      {WEEKDAYS.map((name, i) => (
+        <button
+          key={name}
+          type="button"
+          onClick={() => onChange(i)}
+          className={clsx(
+            'px-2.5 py-1.5 text-[11px] uppercase tracking-[0.15em] transition-colors',
+            value === i ? 'bg-ink text-paper' : 'text-ink-mute hover:bg-paper-2'
+          )}
+        >
+          {name.slice(0, 3)}
+        </button>
+      ))}
+    </div>
   );
 }

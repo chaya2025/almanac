@@ -25,7 +25,7 @@ import {
   rangeForGranularity,
   type Granularity,
 } from '@/lib/aggregate';
-import { trendSeries } from '@/lib/weight';
+import { trendSeries, weighInDay } from '@/lib/weight';
 
 const TABS: { v: Granularity; label: string; sub: string }[] = [
   { v: 'daily', label: 'Daily', sub: 'last 30 days' },
@@ -163,7 +163,7 @@ export default function Trends() {
             )
           }
         >
-          <WeightChart data={weightSeries} height={240} />
+          <WeightChart data={weightSeries} height={240} weighInDay={weighInDay(profile)} />
         </Card>
 
         <Card

@@ -58,6 +58,7 @@ export interface Profile {
   sleepTargetHours: number;
   waterTargetMl: number;
   timeFormat?: TimeFormat; // '24h' default
+  weighInDay?: number; // 0 = Sunday … 6 = Saturday, Monday default
   createdAt: number;
   updatedAt: number;
 }

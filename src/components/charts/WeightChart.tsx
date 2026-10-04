@@ -10,6 +10,7 @@ import {
   ReferenceDot,
 } from 'recharts';
 import { format, parseISO, getDay } from 'date-fns';
+import { DEFAULT_WEIGH_IN_DAY, WEEKDAYS } from '@/lib/weight';
 import ChartFrame, { axisStyle, palette, tooltipStyle, gridProps, xAxisLine, Gradient } from './ChartFrame';
 
 type Point = { date: string; kg: number; trend: number | null };
@@ -17,9 +18,11 @@ type Point = { date: string; kg: number; trend: number | null };
 export default function WeightChart({
   data,
   height = 220,
+  weighInDay = DEFAULT_WEIGH_IN_DAY,
 }: {
   data: Point[];
   height?: number;
+  weighInDay?: number;
 }) {
   if (data.length < 2) {
     return (
@@ -29,7 +32,7 @@ export default function WeightChart({
         emptyText={
           data.length === 0
             ? 'no weigh-ins yet — log one to start the chart.'
-            : 'one weigh-in logged. Add another (Sunday is the day) to see your trend.'
+            : `one weigh-in logged. Add another (${WEEKDAYS[weighInDay]} is the day) to see your trend.`
         }
       >
         <></>
@@ -38,7 +41,7 @@ export default function WeightChart({
   }
   const min = Math.floor(Math.min(...data.map((d) => d.kg)) - 1);
   const max = Math.ceil(Math.max(...data.map((d) => d.kg)) + 1);
-  const sundays = data.filter((d) => getDay(parseISO(d.date)) === 0);
+  const weighIns = data.filter((d) => getDay(parseISO(d.date)) === weighInDay);
 
   return (
     <ChartFrame height={height}>
@@ -92,7 +95,7 @@ export default function WeightChart({
             dot={false}
             isAnimationActive
           />
-          {sundays.map((s) => (
+          {weighIns.map((s) => (
             <ReferenceDot
               key={s.date}
               x={s.date}

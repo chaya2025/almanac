@@ -1,10 +1,23 @@
 import { format, parseISO, differenceInCalendarDays, getDay } from 'date-fns';
 import type { WeightEntry } from '@/types';
 
-export const isSunday = (d: Date | string = new Date()): boolean => {
+export const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const DEFAULT_WEIGH_IN_DAY = 1; // Monday
+
+// 0 = Sunday … 6 = Saturday; profiles from before the setting existed get the default
+export const weighInDay = (profile?: { weighInDay?: number }): number =>
+  profile?.weighInDay ?? DEFAULT_WEIGH_IN_DAY;
+
+export const isWeighInDay = (day: number, d: Date | string = new Date()): boolean => {
   const date = typeof d === 'string' ? parseISO(d) : d;
-  return getDay(date) === 0;
+  return getDay(date) === day;
 };
+
+export function nextWeighInLabel(day: number, date: string): string {
+  const diff = (day - getDay(parseISO(date)) + 7) % 7;
+  if (diff === 0) return 'today';
+  return diff === 1 ? 'tomorrow' : `in ${diff} days`;
+}
 
 export function bmi(kg?: number, heightCm?: number): number | null {
   if (!kg || !heightCm) return null;
